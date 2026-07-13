@@ -32,16 +32,16 @@
         "platforms": {
             "android": {
                 "default": {
-                    "projectId": "nusavite-official",
-                    "appId": "1:232447680096:android:52e2de6a9aafde32692d05",
+                    "projectId": "kinipos-official",
+                    "appId": "1:1060095869219:android:833e169c19bfdc046d0c96",
                     "fileOutput": "android/app/google-services.json"
                 }
             },
             "dart": {
                 "lib/firebase_options.dart": {
-                    "projectId": "nusavite-official",
+                    "projectId": "kinipos-official",
                     "configurations": {
-                        "android": "1:232447680096:android:52e2de6a9aafde32692d05"
+                        "android": "1:1060095869219:android:833e169c19bfdc046d0c96"
                     }
                 }
             }

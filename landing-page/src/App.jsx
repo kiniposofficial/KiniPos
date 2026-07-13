@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const APP_URL = "https://nusavite-official.web.app";
+const APP_URL = "https://kinipos-official.web.app";
 
 function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
