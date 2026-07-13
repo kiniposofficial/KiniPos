@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1060095869219",
+    "firebase_url": "https://kinipos-official-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "kinipos-official",
+    "storage_bucket": "kinipos-official.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1060095869219:android:833e169c19bfdc046d0c96",
+        "android_client_info": {
+          "package_name": "com.kinipos.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1060095869219-r8rmurv7bs1s1diiohoiibu5e2b8lmk7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kinipos.app",
+            "certificate_hash": "f8e985b24e86c99369789dce3a3c8bc5aba6d663"
+          }
+        },
+        {
+          "client_id": "1060095869219-49nltsp5tftq187lgiikpc6r01upheg2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5w6EYV1lGIQlwlJJXcP7C1dtBGOZkkRg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1060095869219-49nltsp5tftq187lgiikpc6r01upheg2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

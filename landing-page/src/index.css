@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-brand-darkText font-outfit overflow-x-hidden;
+  }
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #0B192C 0%, #1E3E62 100%);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #C5A059 0%, #E3C588 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

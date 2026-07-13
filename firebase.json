@@ -1,0 +1,36 @@
+{
+    "functions": [
+        {
+            "source": "functions",
+            "codebase": "kinipos-logic",
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firestore-debug.log"
+            ]
+        }
+    ],
+    "firestore": {
+        "rules": "firestore.rules"
+    },
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "nusavite-official",
+                    "appId": "1:232447680096:android:52e2de6a9aafde32692d05",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "nusavite-official",
+                    "configurations": {
+                        "android": "1:232447680096:android:52e2de6a9aafde32692d05"
+                    }
+                }
+            }
+        }
+    }
+}
