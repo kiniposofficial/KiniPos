@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+const APP_URL = "https://nusavite-official.web.app";
+
 function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -57,7 +59,7 @@ function App() {
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <a href="#download" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-6 py-2.5 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-brand-gold/20 transform hover:-translate-y-0.5 inline-block">
+            <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-6 py-2.5 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-brand-gold/20 transform hover:-translate-y-0.5 inline-block">
               Buka Aplikasi
             </a>
           </div>
@@ -79,7 +81,7 @@ function App() {
             <a href="#testimoni" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors font-medium text-lg py-1">Testimoni</a>
             <a href="#harga" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors font-medium text-lg py-1">Harga</a>
             <a href="#kontak" onClick={() => setMobileMenuOpen(false)} className="text-gray-300 hover:text-white transition-colors font-medium text-lg py-1">Kontak</a>
-            <a href="#download" onClick={() => setMobileMenuOpen(false)} className="bg-brand-gold text-brand-navy text-center font-bold py-3 rounded-xl transition-all duration-300 mt-2 block">
+            <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="bg-brand-gold text-brand-navy text-center font-bold py-3 rounded-xl transition-all duration-300 mt-2 block">
               Buka Aplikasi
             </a>
           </div>
@@ -106,7 +108,7 @@ function App() {
               Kini Pos menghadirkan kemudahan kasir digital khusus laundry dengan fitur scan barcode, pelacakan status cucian, kelola voucher, hingga laporan laba rugi otomatis.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
-              <a href="#download" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-8 py-4 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:shadow-brand-gold/20 transform hover:-translate-y-0.5 block">
+              <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-8 py-4 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:shadow-brand-gold/20 transform hover:-translate-y-0.5 block">
                 Coba Gratis Sekarang
               </a>
               <a href="#fitur" className="bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium px-8 py-4 rounded-xl text-center transition-all duration-300 transform hover:-translate-y-0.5 block">
@@ -364,7 +366,7 @@ function App() {
                   <li className="flex items-center gap-3 text-sm text-gray-400 line-through"><i className="fa-solid fa-xmark"></i> Integrasi Notifikasi WhatsApp</li>
                 </ul>
               </div>
-              <a href="#download" className="mt-8 block text-center font-bold border border-brand-navy text-brand-navy py-3.5 rounded-xl hover:bg-brand-navy hover:text-white transition-all duration-300">Mulai Gratis</a>
+              <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="mt-8 block text-center font-bold border border-brand-navy text-brand-navy py-3.5 rounded-xl hover:bg-brand-navy hover:text-white transition-all duration-300">Mulai Gratis</a>
             </div>
 
             {/* Plan 2: Berbayar (Pro) */}
@@ -388,7 +390,7 @@ function App() {
                   <li className="flex items-center gap-3 text-sm text-gray-300"><i className="fa-solid fa-check text-brand-gold"></i> Laporan Keuangan Lengkap</li>
                 </ul>
               </div>
-              <a href="#download" className="mt-8 block text-center font-bold bg-brand-gold text-brand-navy py-3.5 rounded-xl hover:bg-brand-gold/90 transition-all duration-300">Pilih Paket Pro</a>
+              <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="mt-8 block text-center font-bold bg-brand-gold text-brand-navy py-3.5 rounded-xl hover:bg-brand-gold/90 transition-all duration-300">Pilih Paket Pro</a>
             </div>
           </div>
         </div>
@@ -400,17 +402,16 @@ function App() {
         <div className="max-w-4xl mx-auto px-6 relative z-10 space-y-8">
           <h2 className="text-3xl md:text-5xl font-bold leading-tight">Siap Naik Kelas Bersama Kini Pos?</h2>
           <p className="text-gray-300 text-lg max-w-2xl mx-auto font-light">
-            Ribuan owner laundry telah mengubah bisnis mereka menjadi lebih modern, terorganisir, dan menghasilkan lebih banyak profit. Kini giliran Anda!
+            Kini Pos menggunakan teknologi PWA terkini. Cukup buka melalui browser handphone atau komputer Anda, lalu pasang langsung ke layar utama secara instan tanpa perlu ke Play Store.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <a href="#" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-8 py-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-brand-gold/20 transform hover:-translate-y-0.5">
-              <i className="fa-brands fa-google-play text-xl"></i>
-              <span className="text-left"><span className="block text-xs font-normal">Dapatkan di</span> Google Play</span>
+          <div className="flex flex-col items-center justify-center gap-4 pt-4">
+            <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-10 py-5 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-gold/30 transform hover:-translate-y-1 text-lg">
+              <i className="fa-solid fa-cloud-arrow-down"></i>
+              Buka & Pasang Aplikasi POS
             </a>
-            <a href="#" className="bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium px-8 py-4 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 transform hover:-translate-y-0.5">
-              <i className="fa-brands fa-apple text-xl"></i>
-              <span className="text-left"><span className="block text-xs font-normal">Dapatkan di</span> App Store</span>
-            </a>
+            <p className="text-gray-400 text-xs font-light">
+              ⚡ Terbuka instan, mendukung offline, dan langsung terpasang di layar utama HP/PC Anda.
+            </p>
           </div>
         </div>
       </section>
