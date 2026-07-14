@@ -403,93 +403,34 @@ function App() {
 
       {/* Contact Section */}
       <section id="kontak" className="py-24 bg-white scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-16">
-          <div className="lg:col-span-5 space-y-6">
+        <div className="max-w-4xl mx-auto px-6 text-center space-y-12">
+          <div className="space-y-4">
             <h2 className="text-brand-teal text-sm font-semibold tracking-widest uppercase">Kontak Kami</h2>
-            <h3 className="text-3xl font-bold text-brand-navy">Punya Pertanyaan Sebelum Memulai?</h3>
-            <p className="text-gray-600 font-light leading-relaxed">
+            <h3 className="text-3xl md:text-4xl font-bold text-brand-navy">Punya Pertanyaan Sebelum Memulai?</h3>
+            <p className="text-gray-600 font-light leading-relaxed max-w-2xl mx-auto">
               Tim support kami selalu siap sedia membantu Anda menjelaskan skema integrasi, demo langsung, atau penawaran harga khusus.
             </p>
-            <div className="space-y-4 pt-4">
-              <div className="flex items-center gap-4">
-                <span className="h-10 w-10 rounded-xl bg-brand-lightGray text-brand-navy flex items-center justify-center text-lg"><i className="fa-solid fa-phone"></i></span>
-                <span className="text-gray-600 font-light">+62 812-3456-7890</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="h-10 w-10 rounded-xl bg-brand-lightGray text-brand-navy flex items-center justify-center text-lg"><i className="fa-solid fa-envelope"></i></span>
-                <span className="text-gray-600 font-light">support@kinipos.com</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="h-10 w-10 rounded-xl bg-brand-lightGray text-brand-navy flex items-center justify-center text-lg"><i className="fa-solid fa-location-dot"></i></span>
-                <span className="text-gray-600 font-light">Jakarta, Indonesia</span>
-              </div>
-            </div>
           </div>
-
-          <div className="lg:col-span-7 bg-brand-lightGray/40 border border-gray-100 p-8 rounded-2xl">
-            {formSubmitted ? (
-              <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-12">
-                <div className="h-16 w-16 bg-brand-teal/10 text-brand-teal rounded-full flex items-center justify-center text-3xl">
-                  <i className="fa-solid fa-circle-check"></i>
-                </div>
-                <h4 className="text-2xl font-bold text-brand-navy">Pesan Terkirim!</h4>
-                <p className="text-gray-500 max-w-sm">Terima kasih telah menghubungi kami. Tim Kini Pos akan segera menghubungi WhatsApp Anda dalam waktu kurang dari 24 jam.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-brand-navy block">Nama Lengkap</label>
-                    <input 
-                      type="text" 
-                      name="name"
-                      required
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:outline-none focus:border-brand-navy transition-colors" 
-                      placeholder="Masukkan nama lengkap" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-brand-navy block">Nomor WhatsApp</label>
-                    <input 
-                      type="tel" 
-                      name="phone"
-                      required
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:outline-none focus:border-brand-navy transition-colors" 
-                      placeholder="Contoh: 08123456..." 
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-brand-navy block">Nama Usaha Laundry</label>
-                  <input 
-                    type="text" 
-                    name="businessName"
-                    required
-                    value={formData.businessName}
-                    onChange={handleInputChange}
-                    className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:outline-none focus:border-brand-navy transition-colors" 
-                    placeholder="Masukkan nama bisnis Anda" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-brand-navy block">Pesan atau Pertanyaan</label>
-                  <textarea 
-                    rows="4" 
-                    name="message"
-                    required
-                    value={formData.message}
-                    onChange={handleInputChange}
-                    className="w-full bg-white border border-gray-200 px-4 py-3 rounded-xl focus:outline-none focus:border-brand-navy transition-colors" 
-                    placeholder="Tuliskan pertanyaan Anda..."
-                  ></textarea>
-                </div>
-                <button type="submit" className="w-full bg-brand-navy hover:bg-brand-navy/90 text-white font-bold py-4 rounded-xl transition-all duration-300">Kirim Pesan</button>
-              </form>
-            )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
+            {/* Phone */}
+            <div className="bg-brand-lightGray/40 border border-gray-100 p-6 rounded-2xl flex flex-col items-center text-center space-y-3 hover:shadow-lg hover:shadow-brand-navy/5 transition-all duration-300">
+              <span className="h-12 w-12 rounded-2xl bg-brand-navy text-white flex items-center justify-center text-xl"><i className="fa-solid fa-phone"></i></span>
+              <h4 className="text-brand-navy font-bold">Telepon / WA</h4>
+              <p className="text-gray-600 font-light text-sm">+62 812-3456-7890</p>
+            </div>
+            {/* Email */}
+            <div className="bg-brand-lightGray/40 border border-gray-100 p-6 rounded-2xl flex flex-col items-center text-center space-y-3 hover:shadow-lg hover:shadow-brand-navy/5 transition-all duration-300">
+              <span className="h-12 w-12 rounded-2xl bg-brand-navy text-white flex items-center justify-center text-xl"><i className="fa-solid fa-envelope"></i></span>
+              <h4 className="text-brand-navy font-bold">Email</h4>
+              <p className="text-gray-600 font-light text-sm">support@kinipos.com</p>
+            </div>
+            {/* Location */}
+            <div className="bg-brand-lightGray/40 border border-gray-100 p-6 rounded-2xl flex flex-col items-center text-center space-y-3 hover:shadow-lg hover:shadow-brand-navy/5 transition-all duration-300">
+              <span className="h-12 w-12 rounded-2xl bg-brand-navy text-white flex items-center justify-center text-xl"><i className="fa-solid fa-location-dot"></i></span>
+              <h4 className="text-brand-navy font-bold">Lokasi</h4>
+              <p className="text-gray-600 font-light text-sm">Jakarta, Indonesia</p>
+            </div>
           </div>
         </div>
       </section>
