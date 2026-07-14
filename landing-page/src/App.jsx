@@ -44,7 +44,6 @@ function App() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
           <a href="#" className="flex items-center gap-3 group">
-            <img src="/images/logo.png" alt="Kini Pos Logo" className="h-10 w-auto filter invert brightness-200 transition-transform duration-300 group-hover:scale-105" />
             <span className="text-white text-xl font-bold tracking-wide">Kini<span className="text-brand-gold">Pos</span></span>
           </a>
 
@@ -94,38 +93,24 @@ function App() {
         <div className="absolute top-1/4 left-10 w-96 h-96 bg-brand-teal/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
-          {/* Text Content */}
-          <div className="lg:col-span-7 text-center lg:text-left space-y-6">
-            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-brand-gold text-sm font-semibold tracking-wide uppercase">
-              <i className="fa-solid fa-sparkles"></i> Aplikasi POS Laundry Modern
-            </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
-              Kelola Bisnis Laundry <br className="hidden md:inline" />
-              Lebih Cepat & <span className="gold-gradient-text">Profesional</span>
-            </h1>
-            <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto lg:mx-0 font-light leading-relaxed">
-              Kini Pos menghadirkan kemudahan kasir digital khusus laundry dengan fitur scan barcode, pelacakan status cucian, kelola voucher, hingga laporan laba rugi otomatis.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
-              <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-8 py-4 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:shadow-brand-gold/20 transform hover:-translate-y-0.5 block">
-                Coba Gratis Sekarang
-              </a>
-              <a href="#fitur" className="bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium px-8 py-4 rounded-xl text-center transition-all duration-300 transform hover:-translate-y-0.5 block">
-                Pelajari Fitur <i className="fa-solid fa-arrow-right ml-2 text-sm"></i>
-              </a>
-            </div>
+        <div className="max-w-4xl mx-auto px-6 text-center space-y-8 relative z-10">
+          <div className="inline-flex items-center justify-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-brand-gold text-sm font-semibold tracking-wide uppercase mx-auto">
+            <i className="fa-solid fa-sparkles"></i> Aplikasi POS Laundry Modern
           </div>
-
-          {/* Image Mockup */}
-          <div className="lg:col-span-5 flex justify-center">
-            <div className="relative w-full max-w-md">
-              {/* Premium Card Background / Glassmorphism effect border */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-brand-gold/30 to-brand-teal/30 rounded-3xl blur-2xl opacity-50 transform rotate-6"></div>
-              <div className="relative bg-brand-navy/60 border border-white/10 p-3 rounded-3xl shadow-2xl backdrop-blur-sm overflow-hidden">
-                <img src="/images/hero.png" alt="Kini Pos Hero" className="rounded-2xl w-full object-cover shadow-inner hover:scale-[1.02] transition-transform duration-500" />
-              </div>
-            </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
+            Kelola Bisnis Laundry <br />
+            Lebih Cepat & <span className="gold-gradient-text">Profesional</span>
+          </h1>
+          <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
+            Kini Pos menghadirkan kemudahan kasir digital khusus laundry dengan fitur scan barcode, pelacakan status cucian, kelola voucher, hingga laporan laba rugi otomatis.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-navy font-bold px-8 py-4 rounded-xl text-center transition-all duration-300 hover:shadow-xl hover:shadow-brand-gold/20 transform hover:-translate-y-0.5 block">
+              Coba Gratis Sekarang
+            </a>
+            <a href="#fitur" className="bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium px-8 py-4 rounded-xl text-center transition-all duration-300 transform hover:-translate-y-0.5 block">
+              Pelajari Fitur <i className="fa-solid fa-arrow-right ml-2 text-sm"></i>
+            </a>
           </div>
         </div>
       </section>
@@ -514,7 +499,6 @@ function App() {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="space-y-4">
             <a href="#" className="flex items-center gap-3">
-              <img src="/images/logo.png" alt="Kini Pos Logo" className="h-10 w-auto filter invert brightness-200" />
               <span className="text-white text-xl font-bold tracking-wide">Kini<span className="text-brand-gold">Pos</span></span>
             </a>
             <p className="text-sm font-light leading-relaxed">
