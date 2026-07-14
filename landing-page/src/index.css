@@ -4,16 +4,34 @@
 
 @layer base {
   body {
-    @apply bg-white text-brand-darkText font-outfit overflow-x-hidden;
+    @apply bg-white text-brand-dark font-outfit overflow-x-hidden;
+  }
+  * {
+    @apply scroll-smooth;
   }
 }
 
-.gradient-hero {
-  background: linear-gradient(135deg, #0B192C 0%, #1E3E62 100%);
-}
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .hero-bg {
+    background: linear-gradient(160deg, #ffffff 0%, #EEF2FF 60%, #E0E7FF 100%);
+  }
 
-.gold-gradient-text {
-  background: linear-gradient(135deg, #C5A059 0%, #E3C588 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  .section-divider {
+    @apply border-t border-brand-border;
+  }
+
+  .btn-primary {
+    @apply bg-brand-primary hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 inline-block;
+  }
+
+  .btn-outline {
+    @apply border border-brand-border hover:border-brand-primary text-brand-dark hover:text-brand-primary font-semibold px-6 py-3 rounded-xl transition-all duration-200 inline-block;
+  }
 }
