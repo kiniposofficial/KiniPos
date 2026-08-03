@@ -86,7 +86,7 @@ export default function App() {
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+      if (session?.user && session.user.email_confirmed_at) {
         setUser(session.user);
         localStorage.setItem('kinipos_user', JSON.stringify(session.user));
         const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
@@ -99,13 +99,13 @@ export default function App() {
       if (event === 'PASSWORD_RECOVERY') {
         setShowAuthModal(true);
         setAuthModalMode('reset');
-      } else if (session?.user) {
+      } else if (session?.user && session.user.email_confirmed_at) {
         setUser(session.user);
         localStorage.setItem('kinipos_user', JSON.stringify(session.user));
         const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
         setStoreName(store);
         setSavedStoreName(store);
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT' || (session?.user && !session.user.email_confirmed_at)) {
         setUser(null);
         setCart([]);
         localStorage.removeItem('kinipos_user');

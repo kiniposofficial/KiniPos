@@ -120,7 +120,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode 
 
         if (error) throw error;
 
-        if (data?.user && !data?.session) {
+        if (data?.user && !data?.user?.email_confirmed_at) {
+          await supabase.auth.signOut();
           setSuccessMsg('Pendaftaran berhasil! 📩 Silakan periksa email Anda untuk mengonfirmasi akun sebelum login.');
         } else if (data?.user) {
           const userStore = storeNameInput || email.split('@')[0];
