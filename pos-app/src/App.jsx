@@ -1,0 +1,946 @@
+import React, { useState, useEffect } from 'react';
+import './App.css';
+import LandingPage from './components/LandingPage';
+import KasirView from './components/KasirView';
+import LaporanView from './components/LaporanView';
+import ProdukView from './components/ProdukView';
+import PengaturanView from './components/PengaturanView';
+import AuthModal from './components/AuthModal';
+import PayModal from './components/PayModal';
+import AddProductModal from './components/AddProductModal';
+import { supabase } from './supabase';
+import Toast from './components/Toast';
+
+const playSound = (type = 'click') => {
+  if (localStorage.getItem('kinipos_sound_muted') === 'true') return;
+  try {
+    const soundPath = type === 'success' ? '/succes.mp3' : '/beep.wav';
+    const audio = new Audio(soundPath);
+    audio.volume = type === 'success' ? 0.7 : 0.4;
+    audio.play().catch(() => {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(type === 'success' ? 880 : 520, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.15);
+    });
+  } catch (e) { }
+};
+
+const DEFAULT_CATEGORIES = ['Semua', 'Makanan', 'Minuman', 'Lainnya'];
+
+const DEFAULT_PRODUCTS = [];
+
+export default function App() {
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('kinipos_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('login');
+  const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+
+  const showNotification = (message, type = 'info') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'info' });
+    }, 3000);
+  };
+
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('kinipos_mode') || 'landing');
+  const [storeName, setStoreName] = useState(() => localStorage.getItem('kinipos_store_name') || 'Usaha Saya');
+  const [savedStoreName, setSavedStoreName] = useState(() => localStorage.getItem('kinipos_store_name') || 'Usaha Saya');
+  const [isSoundMuted, setIsSoundMuted] = useState(() => localStorage.getItem('kinipos_sound_muted') !== 'false');
+  const [products, setProducts] = useState(() => {
+    if (!user?.id) return DEFAULT_PRODUCTS;
+    const saved = localStorage.getItem(`kinipos_products_${user.id}`);
+    return saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
+  });
+  const [selectedCategory, setSelectedCategory] = useState('Semua');
+  const [cart, setCart] = useState([]);
+
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payMethod, setPayMethod] = useState('CASH');
+  const [amountPaidInput, setAmountPaidInput] = useState('');
+  const [completedTx, setCompletedTx] = useState(null);
+  const [waPhone, setWaPhone] = useState('');
+
+  const [history, setHistory] = useState(() => {
+    if (!user?.id) return [];
+    const saved = localStorage.getItem(`kinipos_history_${user.id}`);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [appTab, setAppTab] = useState('kasir');
+
+  useEffect(() => {
+    if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
+      setShowAuthModal(true);
+      setAuthModalMode('reset');
+    } else if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        localStorage.setItem('kinipos_user', JSON.stringify(session.user));
+        const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
+        setStoreName(store);
+        setSavedStoreName(store);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowAuthModal(true);
+        setAuthModalMode('reset');
+      } else if (session?.user) {
+        setUser(session.user);
+        localStorage.setItem('kinipos_user', JSON.stringify(session.user));
+        const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
+        setStoreName(store);
+        setSavedStoreName(store);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setCart([]);
+        localStorage.removeItem('kinipos_user');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdPrice, setNewProdPrice] = useState('');
+  const [newProdCost, setNewProdCost] = useState('');
+  const [newProdCategory, setNewProdCategory] = useState('Makanan');
+  const [isUnlimitedStock, setIsUnlimitedStock] = useState(true);
+  const [stockQty, setStockQty] = useState('');
+  const [newProdImageFile, setNewProdImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [confirmCancelTxId, setConfirmCancelTxId] = useState(null);
+  const [targetTabPending, setTargetTabPending] = useState(null);
+  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  useEffect(() => {
+    setCart([]);
+    if (user?.id) {
+      fetchDataFromSupabase(user);
+    } else {
+      setProducts([]);
+      setHistory([]);
+      setIsDataLoaded(true);
+    }
+  }, [user]);
+
+  const fetchDataFromSupabase = async (targetUser = user) => {
+    if (!targetUser?.id) {
+      setProducts([]);
+      setHistory([]);
+      setIsDataLoaded(true);
+      return;
+    }
+
+    try {
+      setIsDataLoaded(false);
+
+      // Fetch products strictly for current user
+      const { data: dbProducts } = await supabase
+        .from('products')
+        .select('*')
+        .eq('user_id', targetUser.id);
+
+      if (dbProducts && dbProducts.length > 0) {
+        setProducts(dbProducts);
+      } else {
+        const localProd = localStorage.getItem(`kinipos_products_${targetUser.id}`) || localStorage.getItem('kinipos_products');
+        if (localProd) {
+          try {
+            const parsedProd = JSON.parse(localProd);
+            if (Array.isArray(parsedProd) && parsedProd.length > 0) {
+              setProducts(parsedProd);
+            } else {
+              setProducts([]);
+            }
+          } catch (e) {
+            setProducts([]);
+          }
+        } else {
+          setProducts([]);
+        }
+      }
+
+      // Fetch transactions strictly for current user
+      const { data: dbTx } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', targetUser.id)
+        .order('created_at', { ascending: false });
+
+      if (dbTx && dbTx.length > 0) {
+        const formattedTx = dbTx.map(t => ({
+          id: t.id,
+          created_at: t.created_at,
+          timestamp: new Date(t.created_at).getTime(),
+          date: new Date(t.created_at).toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          }) + ' ' + new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+          items: t.items || [],
+          total: t.total,
+          costTotal: t.cost_total,
+          profit: t.profit,
+          payMethod: t.pay_method,
+          paid: t.paid,
+          change: t.change,
+          waPhone: t.wa_phone
+        }));
+        setHistory(formattedTx);
+      } else {
+        const localHist = localStorage.getItem(`kinipos_history_${targetUser.id}`);
+        if (localHist) {
+          try {
+            const parsedHist = JSON.parse(localHist);
+            if (Array.isArray(parsedHist)) setHistory(parsedHist);
+            else setHistory([]);
+          } catch (e) {
+            setHistory([]);
+          }
+        } else {
+          setHistory([]);
+        }
+      }
+    } catch (e) {
+      console.log('Error fetching user data', e);
+    } finally {
+      setIsDataLoaded(true);
+    }
+  };
+
+  useEffect(() => {
+    if (isDataLoaded && user?.id) {
+      localStorage.setItem(`kinipos_products_${user.id}`, JSON.stringify(products));
+    }
+  }, [products, user, isDataLoaded]);
+
+  useEffect(() => {
+    if (isDataLoaded && user?.id) {
+      localStorage.setItem(`kinipos_history_${user.id}`, JSON.stringify(history));
+    }
+  }, [history, user, isDataLoaded]);
+
+  useEffect(() => {
+    localStorage.setItem('kinipos_store_name', storeName);
+  }, [storeName]);
+
+  useEffect(() => {
+    localStorage.setItem('kinipos_mode', viewMode);
+  }, [viewMode]);
+
+  const addToCart = (product) => {
+    playSound('click');
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      const currentQty = existing ? existing.qty : 0;
+
+      // Cek stok terbatas: jangan melebihi stok yang tersedia
+      if (!product.is_unlimited && product.stock !== null && product.stock !== undefined) {
+        if (currentQty + 1 > product.stock) {
+          showNotification(`Stok ${product.name} hanya tersisa ${product.stock}! ⚠️`, 'error');
+          return prev;
+        }
+      }
+
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
+      }
+      return [...prev, { ...product, qty: 1 }];
+    });
+  };
+
+  const updateQty = (id, delta) => {
+    playSound('click');
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const newQty = item.qty + delta;
+        return newQty > 0 ? { ...item, qty: newQty } : null;
+      }
+      return item;
+    }).filter(Boolean));
+  };
+
+  const setExactQty = (id, val) => {
+    // Allow empty string while typing (will be fixed on blur)
+    if (val === '') {
+      setCart(prev => prev.map(item =>
+        item.id === id ? { ...item, qty: '' } : item
+      ));
+      return;
+    }
+    const qty = parseInt(val, 10);
+    if (!isNaN(qty) && qty > 0) {
+      setCart(prev => prev.map(item =>
+        item.id === id ? { ...item, qty } : item
+      ));
+    }
+  };
+
+  const fixQtyOnBlur = (id) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id && (item.qty === '' || item.qty <= 0 || isNaN(item.qty))) {
+        return { ...item, qty: 1 };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id) => {
+    playSound('click');
+    setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const clearCart = () => {
+    playSound('click');
+    setCart([]);
+  };
+
+  const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const cartCostTotal = cart.reduce((sum, item) => sum + ((item.cost || 0) * item.qty), 0);
+
+  const handleOpenPayModal = () => {
+    if (cart.length === 0) return;
+    playSound('click');
+    setPayMethod('CASH');
+    setAmountPaidInput(cartTotal.toString());
+    setWaPhone('');
+    setShowPayModal(true);
+  };
+
+  const handleFinishTransaction = async () => {
+    const paid = payMethod === 'QRIS' ? cartTotal : (parseFloat(amountPaidInput) || 0);
+    if (payMethod === 'CASH' && paid < cartTotal) {
+      const kurang = cartTotal - paid;
+      showNotification(`Uang pembayaran kurang ${formatRp(kurang)}! ⚠️`, 'error');
+      playSound('click');
+      return;
+    }
+
+    const change = payMethod === 'QRIS' ? 0 : paid - cartTotal;
+    const profit = cartTotal - cartCostTotal;
+
+    const now = new Date();
+    const txId = 'TX-' + now.getTime();
+    const newTx = {
+      id: txId,
+      created_at: now.toISOString(),
+      timestamp: now.getTime(),
+      date: now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }) + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      items: [...cart],
+      total: cartTotal,
+      costTotal: cartCostTotal,
+      profit,
+      payMethod,
+      paid,
+      change,
+      waPhone: waPhone.trim()
+    };
+
+    setProducts(prevProducts => {
+      return prevProducts.map(p => {
+        const itemInCart = cart.find(c => c.id === p.id);
+        if (itemInCart && !p.is_unlimited && p.stock !== null && p.stock !== undefined) {
+          const newStock = Math.max(0, p.stock - itemInCart.qty);
+          supabase.from('products').update({ stock: newStock }).eq('id', p.id).then(() => { });
+          return { ...p, stock: newStock };
+        }
+        return p;
+      });
+    });
+
+    setHistory(prev => [newTx, ...prev]);
+    setCompletedTx(newTx);
+    playSound('success');
+
+    try {
+      await supabase.from('transactions').insert([{
+        id: txId,
+        total: cartTotal,
+        cost_total: cartCostTotal,
+        profit,
+        pay_method: payMethod,
+        paid,
+        change,
+        wa_phone: waPhone.trim(),
+        items: cart,
+        user_id: user?.id
+      }]);
+    } catch (e) {
+      console.log('Saved to local storage, will sync later');
+    }
+  };
+
+  const resetAllTx = () => {
+    setCompletedTx(null);
+    setShowPayModal(false);
+    setCart([]);
+    setAmountPaidInput('');
+    setWaPhone('');
+  };
+
+  const formatRp = (num) => {
+    return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+  };
+
+  const sendWhatsappReceipt = (tx) => {
+    let cleanPhone = tx.waPhone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62' + cleanPhone.slice(1);
+    }
+
+    let msg = `*STRUK - ${storeName.toUpperCase()}*\n`;
+    msg += `No: #${tx.id} | ${tx.date}\n`;
+    msg += `Metode: ${tx.payMethod === 'QRIS' ? 'QRIS / Non-Tunai' : 'Tunai (Cash)'}\n`;
+    msg += `----------------------------\n`;
+    tx.items.forEach(item => {
+      msg += `${item.name} x${item.qty} = ${formatRp(item.price * item.qty)}\n`;
+    });
+    msg += `----------------------------\n`;
+    msg += `*TOTAL: ${formatRp(tx.total)}*\n`;
+    if (tx.payMethod === 'CASH') {
+      msg += `Bayar: ${formatRp(tx.paid)}\n`;
+      msg += `Kembali: ${formatRp(tx.change)}\n`;
+    }
+    msg += `\nTerima Kasih 🙏`;
+
+    const url = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+    window.open(url, '_blank');
+  };
+
+  const openAddProductModal = (prod = null) => {
+    if (prod) {
+      setEditingProduct(prod);
+      setNewProdName(prod.name);
+      setNewProdPrice(prod.price.toString());
+      setNewProdCost(prod.cost ? prod.cost.toString() : '');
+      setNewProdCategory(prod.category || 'Makanan');
+      setIsUnlimitedStock(prod.is_unlimited ?? (prod.stock === undefined || prod.stock === null));
+      setStockQty(prod.stock !== undefined && prod.stock !== null ? prod.stock.toString() : '');
+    } else {
+      setEditingProduct(null);
+      setNewProdName('');
+      setNewProdPrice('');
+      setNewProdCost('');
+      setNewProdCategory('Makanan');
+      setIsUnlimitedStock(true);
+      setStockQty('');
+    }
+    setNewProdImageFile(null);
+    setShowAddProductModal(true);
+  };
+
+  const handleSaveProduct = async (e) => {
+    e.preventDefault();
+    if (!newProdName || !newProdPrice) return;
+    setUploadingImage(true);
+
+    let imageUrl = editingProduct ? (editingProduct.image_url || '') : '';
+
+    if (newProdImageFile) {
+      try {
+        const fileExt = newProdImageFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `products/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(filePath, newProdImageFile);
+
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from('products')
+            .getPublicUrl(filePath);
+
+          imageUrl = publicUrlData?.publicUrl || '';
+        }
+      } catch (err) {
+        console.error('Image upload failed', err);
+      }
+    }
+
+    const finalStock = isUnlimitedStock ? null : (parseInt(stockQty, 10) || 0);
+
+    if (editingProduct) {
+      const updatedProd = {
+        ...editingProduct,
+        name: newProdName,
+        price: parseFloat(newProdPrice),
+        cost: parseFloat(newProdCost) || 0,
+        category: newProdCategory,
+        is_unlimited: isUnlimitedStock,
+        stock: finalStock,
+        image_url: imageUrl
+      };
+
+      setProducts(prev => prev.map(p => p.id === editingProduct.id ? updatedProd : p));
+      showNotification('Menu berhasil diperbarui! ✏️', 'success');
+
+      try {
+        const { error: updateErr } = await supabase.from('products').update({
+          name: updatedProd.name,
+          price: updatedProd.price,
+          cost: updatedProd.cost,
+          category: updatedProd.category,
+          is_unlimited: updatedProd.is_unlimited,
+          stock: updatedProd.stock,
+          image_url: updatedProd.image_url
+        }).eq('id', editingProduct.id);
+
+        if (updateErr) {
+          console.error('Failed updating product:', updateErr);
+          showNotification(`Gagal update DB: ${updateErr.message} ⚠️`, 'error');
+        }
+      } catch (e) { }
+    } else {
+      const newProd = {
+        id: Date.now().toString(),
+        name: newProdName,
+        price: parseFloat(newProdPrice),
+        cost: parseFloat(newProdCost) || 0,
+        category: newProdCategory,
+        is_unlimited: isUnlimitedStock,
+        stock: finalStock,
+        image_url: imageUrl
+      };
+
+      setProducts(prev => [...prev, newProd]);
+      showNotification('Menu baru berhasil ditambahkan! ✨', 'success');
+
+      try {
+        const { data: inserted, error: insertErr } = await supabase.from('products').insert([{
+          name: newProd.name,
+          price: newProd.price,
+          cost: newProd.cost,
+          category: newProd.category,
+          is_unlimited: newProd.is_unlimited,
+          stock: newProd.stock,
+          image_url: newProd.image_url,
+          user_id: user?.id
+        }]).select();
+
+        if (insertErr) {
+          console.error('Failed inserting product:', insertErr);
+          showNotification(`Gagal simpan DB: ${insertErr.message} ⚠️`, 'error');
+        } else if (inserted && inserted[0]) {
+          setProducts(prev => prev.map(p => p.id === newProd.id ? inserted[0] : p));
+        }
+      } catch (e) {
+        console.error('Failed inserting product to Supabase', e);
+      }
+    }
+
+    setNewProdName('');
+    setNewProdPrice('');
+    setNewProdCost('');
+    setStockQty('');
+    setIsUnlimitedStock(true);
+    setNewProdImageFile(null);
+    setEditingProduct(null);
+    setUploadingImage(false);
+    setShowAddProductModal(false);
+    playSound('success');
+  };
+
+  const deleteProduct = async (id) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+    playSound('click');
+    showNotification('Menu berhasil dihapus 🗑️', 'info');
+
+    try {
+      await supabase.from('products').delete().eq('id', id);
+    } catch (e) { }
+  };
+
+  const handleCancelTransaction = (txId) => {
+    setConfirmCancelTxId(txId);
+  };
+
+  const executeCancelTransaction = async () => {
+    if (!confirmCancelTxId) return;
+    const txId = confirmCancelTxId;
+    const txToCancel = history.find(t => t.id === txId);
+
+    if (txToCancel) {
+      setHistory(prev => prev.filter(t => t.id !== txId));
+
+      if (txToCancel.items && txToCancel.items.length > 0) {
+        setProducts(prevProducts => {
+          return prevProducts.map(p => {
+            const itemInTx = txToCancel.items.find(i => i.id === p.id);
+            if (itemInTx && !p.is_unlimited && p.stock !== null && p.stock !== undefined) {
+              const restoredStock = p.stock + itemInTx.qty;
+              supabase.from('products').update({ stock: restoredStock }).eq('id', p.id).then(() => { });
+              return { ...p, stock: restoredStock };
+            }
+            return p;
+          });
+        });
+      }
+
+      playSound('click');
+      showNotification('Transaksi dibatalkan & stok dikembalikan! 🛑', 'info');
+
+      try {
+        await supabase.from('transactions').delete().eq('id', txId);
+      } catch (e) { }
+    }
+
+    setConfirmCancelTxId(null);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProducts([]);
+    setHistory([]);
+    setCart([]);
+    setAppTab('kasir');
+    localStorage.removeItem('kinipos_user');
+    setViewMode('landing');
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    showNotification('Berhasil Keluar Akun 👋', 'info');
+  };
+
+  // Guard: jika user null tapi masih di dashboard, paksa kembali ke landing
+  useEffect(() => {
+    if (!user && viewMode !== 'landing') {
+      setViewMode('landing');
+    }
+  }, [user, viewMode]);
+
+  const filteredProducts = selectedCategory === 'Semua'
+    ? products
+    : products.filter(p => p.category === selectedCategory);
+
+  const handleCloseAuthModal = () => {
+    setShowAuthModal(false);
+    setAuthModalMode('login');
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  };
+
+  const handleOpenKasir = () => {
+    if (!user) {
+      setAuthModalMode('login');
+      setShowAuthModal(true);
+    } else {
+      setViewMode('kasir');
+    }
+  };
+
+  if (viewMode === 'landing') {
+    return (
+      <>
+        <LandingPage onOpenApp={handleOpenKasir} />
+        <AuthModal
+          isOpen={showAuthModal}
+          initialMode={authModalMode}
+          onClose={handleCloseAuthModal}
+          onAuthSuccess={(authUser, store, msg) => {
+            setUser(authUser);
+            if (store) setStoreName(store);
+            handleCloseAuthModal();
+            setViewMode('kasir');
+            showNotification(msg || 'Selamat Datang Kembali! 👋', 'success');
+          }}
+        />
+      </>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-white">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setAppTab('kasir')}>
+          <img
+            src="/kinipos_logo.png"
+            alt="KiniPos Logo"
+            className="w-7 h-7 object-contain"
+          />
+          <div>
+            <h1 className="text-sm sm:text-base font-extrabold text-slate-900 leading-tight">{storeName}</h1>
+            <p className="text-[10px] text-slate-400 font-medium leading-tight">Kasir Digital</p>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Body */}
+      <main className="flex-1 overflow-y-auto p-3 sm:p-5 max-w-6xl w-full mx-auto pb-24">
+        {appTab === 'kasir' && (
+          <KasirView
+            DEFAULT_CATEGORIES={DEFAULT_CATEGORIES}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            filteredProducts={filteredProducts}
+            addToCart={addToCart}
+            cart={cart}
+            clearCart={() => setShowClearCartConfirm(true)}
+            updateQty={updateQty}
+            removeFromCart={removeFromCart}
+            setExactQty={setExactQty}
+            fixQtyOnBlur={fixQtyOnBlur}
+            cartTotal={cartTotal}
+            handleOpenPayModal={handleOpenPayModal}
+            formatRp={formatRp}
+          />
+        )}
+
+        {appTab === 'laporan' && (
+          <LaporanView
+            history={history}
+            sendWhatsappReceipt={sendWhatsappReceipt}
+            handleCancelTransaction={handleCancelTransaction}
+            formatRp={formatRp}
+          />
+        )}
+
+        {appTab === 'produk' && (
+          <ProdukView
+            products={products}
+            formatRp={formatRp}
+            openAddProductModal={openAddProductModal}
+            deleteProduct={deleteProduct}
+          />
+        )}
+
+        {appTab === 'pengaturan' && (
+          <PengaturanView
+            storeName={storeName}
+            setStoreName={setStoreName}
+            savedStoreName={savedStoreName}
+            setSavedStoreName={setSavedStoreName}
+            isSoundMuted={isSoundMuted}
+            setIsSoundMuted={setIsSoundMuted}
+            playSound={playSound}
+            showNotification={showNotification}
+            user={user}
+            setShowAuthModal={setShowAuthModal}
+            setAuthModalMode={setAuthModalMode}
+            handleLogout={handleLogout}
+            supabase={supabase}
+          />
+        )}
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 flex items-stretch shadow-lg safe-bottom">
+        {[
+          { key: 'kasir', label: 'Kasir', icon: '/cashier-machine.png' },
+          { key: 'laporan', label: 'Omset', icon: '/omset.png' },
+          { key: 'produk', label: 'Menu', icon: '/menu.png' },
+          { key: 'pengaturan', label: 'Toko', icon: '/settings.png' },
+        ].map(({ key, label, icon }) => (
+          <button
+            key={key}
+            className={`flex-1 py-2 flex flex-col items-center justify-center gap-0.5 transition ${appTab === key ? 'text-slate-900 font-bold' : 'text-slate-400 font-semibold'
+              }`}
+            onClick={() => {
+              if (appTab === 'pengaturan' && storeName !== savedStoreName) {
+                setTargetTabPending(key);
+              } else {
+                setAppTab(key);
+              }
+            }}
+          >
+            <img src={icon} alt={label} className={`w-5 h-5 object-contain transition ${appTab === key ? 'opacity-100' : 'opacity-40'}`} />
+            <span className="text-[10px]">{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Modal Auth */}
+      <AuthModal
+        isOpen={showAuthModal}
+        initialMode={authModalMode}
+        onClose={handleCloseAuthModal}
+        onAuthSuccess={(authUser, store, notifMsg) => {
+          setUser(authUser);
+          localStorage.setItem('kinipos_user', JSON.stringify(authUser));
+          if (store) {
+            setStoreName(store);
+            setSavedStoreName(store);
+            localStorage.setItem('kinipos_store_name', store);
+          }
+          handleCloseAuthModal();
+          showNotification(notifMsg || 'Berhasil Masuk Akun! 🔓', 'success');
+        }}
+      />
+
+      {/* Modal Bayar */}
+      <PayModal
+        showPayModal={showPayModal}
+        setShowPayModal={setShowPayModal}
+        completedTx={completedTx}
+        cartTotal={cartTotal}
+        payMethod={payMethod}
+        setPayMethod={setPayMethod}
+        amountPaidInput={amountPaidInput}
+        setAmountPaidInput={setAmountPaidInput}
+        handleFinishTransaction={handleFinishTransaction}
+        resetAllTx={resetAllTx}
+        formatRp={formatRp}
+      />
+
+      {/* Modal Add / Edit Product */}
+      <AddProductModal
+        showAddProductModal={showAddProductModal}
+        setShowAddProductModal={setShowAddProductModal}
+        editingProduct={editingProduct}
+        handleSaveProduct={handleSaveProduct}
+        newProdName={newProdName}
+        setNewProdName={setNewProdName}
+        newProdPrice={newProdPrice}
+        setNewProdPrice={setNewProdPrice}
+        newProdCost={newProdCost}
+        setNewProdCost={setNewProdCost}
+        newProdCategory={newProdCategory}
+        setNewProdCategory={setNewProdCategory}
+        isUnlimitedStock={isUnlimitedStock}
+        setIsUnlimitedStock={setIsUnlimitedStock}
+        stockQty={stockQty}
+        setStockQty={setStockQty}
+        setNewProdImageFile={setNewProdImageFile}
+        uploadingImage={uploadingImage}
+        DEFAULT_CATEGORIES={DEFAULT_CATEGORIES}
+        formatRp={formatRp}
+      />
+
+      {/* Modal Batal Transaksi */}
+      {confirmCancelTxId && (
+        <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 text-center space-y-3 shadow-2xl">
+            <img src="/bin.png" alt="Batal" className="w-12 h-12 mx-auto" />
+            <h3 className="text-lg font-extrabold text-slate-900">Batalkan Transaksi?</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Apakah Anda yakin ingin membatalkan transaksi ini? Sisa stok barang akan dikembalikan.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button type="button" className="flex-1 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl text-sm hover:bg-slate-200 transition" onClick={() => setConfirmCancelTxId(null)}>
+                Tidak, Batal
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-red-600 transition"
+                onClick={executeCancelTransaction}
+              >
+                Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Kosongkan Keranjang */}
+      {showClearCartConfirm && (
+        <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 text-center space-y-3 shadow-2xl">
+            <img src="/shopping-cart.png" alt="Kosongkan" className="w-12 h-12 mx-auto opacity-40" />
+            <h3 className="text-lg font-extrabold text-slate-900">Kosongkan Pesanan?</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Semua item di keranjang akan dihapus. Lanjutkan?
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button type="button" className="flex-1 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl text-sm hover:bg-slate-200 transition" onClick={() => setShowClearCartConfirm(false)}>
+                Batal
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-red-600 transition"
+                onClick={() => {
+                  clearCart();
+                  setShowClearCartConfirm(false);
+                  showNotification('Keranjang dikosongkan', 'info');
+                }}
+              >
+                Ya, Kosongkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Simpan Nama Toko saat Pindah Tab */}
+      {targetTabPending && (
+        <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 text-center space-y-3 shadow-2xl">
+            <div className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-full flex items-center justify-center mx-auto text-amber-500 text-xl font-bold">
+              💾
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900">Simpan Perubahan Nama Toko?</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Anda mengubah nama toko menjadi <strong className="text-slate-900">"{storeName}"</strong>. Apakah Anda ingin menyimpannya?
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                className="flex-1 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl text-xs hover:bg-slate-200 transition"
+                onClick={() => {
+                  setStoreName(savedStoreName);
+                  setAppTab(targetTabPending);
+                  setTargetTabPending(null);
+                }}
+              >
+                Abaikan & Pindah
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-slate-700 transition"
+                onClick={async () => {
+                  if (storeName.trim()) {
+                    localStorage.setItem('kinipos_store_name', storeName);
+                    setSavedStoreName(storeName);
+                    if (user) {
+                      try {
+                        await supabase.auth.updateUser({ data: { store_name: storeName } });
+                      } catch (err) { }
+                    }
+                    playSound('success');
+                    showNotification('Nama toko berhasil disimpan! 🏪', 'success');
+                  }
+                  setAppTab(targetTabPending);
+                  setTargetTabPending(null);
+                }}
+              >
+                Ya, Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      <Toast toast={toast} />
+    </div>
+  );
+}

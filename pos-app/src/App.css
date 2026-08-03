@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Custom base resets ── */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* ── Input money formatting ── */
+.input-money {
+  @apply w-full border border-slate-200 rounded-xl px-4 py-3.5 text-lg font-extrabold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition placeholder:text-slate-300 placeholder:font-normal;
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+/* ── Hide scrollbar for category filters ── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Toast animation ── */
+@keyframes slideDownToast {
+  from { opacity: 0; transform: translate(-50%, -24px) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, 0)     scale(1);    }
+}
+.toast-animate { animation: slideDownToast 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ── Safe-area bottom padding for iOS ── */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ── Password wrapper ── */
+.pwd-wrapper { position: relative; }
+.pwd-wrapper input { padding-right: 40px; }
+.pwd-eye {
+  position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: #94a3b8;
+}

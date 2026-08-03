@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/kinipos_logo.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/kinipos_logo.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/kinipos_logo.png" />
+    <link rel="shortcut icon" type="image/png" href="/kinipos_logo.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/kinipos_logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    
+    <!-- Primary SEO Meta Tags -->
+    <title>KiniPos - Kasir Pedagang Mikro</title>
+    <meta name="title" content="KiniPos - Kasir Pedagang Mikro" />
+    <meta name="description" content="KiniPos adalah aplikasi kasir POS online cepat, hemat & tanpa ribet untuk pedagang mikro, kedai kopi, booth es teh, warung makan & UMKM di seluruh Indonesia." />
+    <meta name="keywords" content="kinipos, aplikasi kasir kotamobagu, pos umkm kotamobagu, aplikasi kasir indonesia, kasir online murah, kasir hp android, kasir kedai kopi, aplikasi kasir warung, kasir booth es teh, pos indonesia" />
+    <meta name="author" content="KiniPos Team" />
+    <meta name="robots" content="index, follow" />
+    <meta name="geo.region" content="ID-SA" />
+    <meta name="geo.placename" content="Kotamobagu, Sulawesi Utara, Indonesia" />
+    <meta name="geo.position" content="0.7225;124.3142" />
+    <meta name="ICBM" content="0.7225, 124.3142" />
+    <link rel="canonical" href="https://kinipos.com/" />
+
+    <!-- Open Graph / Facebook / WhatsApp Share Cards -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kinipos.com/" />
+    <meta property="og:title" content="KiniPos - Aplikasi Kasir Cepat & Praktis Tanpa Ribet" />
+    <meta property="og:description" content="Aplikasi kasir POS khusus kedai kopi, booth kuliner, warung makan & UMKM. Pantau omset harian langsung dari HP." />
+    <meta property="og:image" content="https://kinipos.com/streetbooth.jpg" />
+
+    <!-- Twitter Meta Tags -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://kinipos.com/" />
+    <meta property="twitter:title" content="KiniPos - Aplikasi Kasir Cepat & Praktis Tanpa Ribet" />
+    <meta property="twitter:description" content="Aplikasi kasir POS khusus kedai kopi, booth kuliner, warung makan & UMKM di seluruh Indonesia." />
+    <meta property="twitter:image" content="https://kinipos.com/streetbooth.jpg" />
+
+    <!-- Google Structured Data (JSON-LD) for Search Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "KiniPos",
+      "operatingSystem": "Web, Android, iOS",
+      "applicationCategory": "BusinessApplication",
+      "description": "Aplikasi kasir POS online cepat, hemat dan praktis untuk pedagang mikro dan UMKM di seluruh Indonesia.",
+      "url": "https://kinipos.com",
+      "publisher": {
+        "@type": "Organization",
+        "name": "KiniPos Indonesia",
+        "logo": "https://kinipos.com/kinipos_logo.png",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Kotamobagu",
+          "addressRegion": "Sulawesi Utara",
+          "addressCountry": "ID"
+        }
+      }
+    }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Midtrans Snap JS -->
+    <script 
+      type="text/javascript"
+      src="https://app.midtrans.com/snap/snap.js"
+      data-client-key="%VITE_MIDTRANS_CLIENT_KEY%"
+    ></script>
+
+    </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

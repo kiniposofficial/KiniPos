@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/robots.txt", "destination": "/robots.txt" },
+    { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
+    { "source": "/manifest.webmanifest", "destination": "/manifest.webmanifest" },
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/workbox-:path*", "destination": "/workbox-:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
