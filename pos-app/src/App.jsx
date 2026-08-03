@@ -96,10 +96,7 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setShowAuthModal(true);
-        setAuthModalMode('reset');
-      } else if (session?.user && session.user.email_confirmed_at) {
+      if (session?.user && session.user.email_confirmed_at) {
         setUser(session.user);
         localStorage.setItem('kinipos_user', JSON.stringify(session.user));
         const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
