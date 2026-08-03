@@ -78,7 +78,7 @@ export default function App() {
   const [appTab, setAppTab] = useState('kasir');
 
   useEffect(() => {
-    if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=recovery'))) {
+    if (window.location.hash && window.location.hash.includes('type=recovery')) {
       setShowAuthModal(true);
       setAuthModalMode('reset');
     } else if (window.location.hash) {
