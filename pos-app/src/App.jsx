@@ -766,14 +766,13 @@ export default function App() {
         </div>
 
         {/* Subscription / Trial Badge */}
-        <button
-          onClick={() => setShowSubscriptionModal(true)}
+        <div
           className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold tracking-wide transition-all border flex items-center gap-1.5 shadow-sm ${
             subInfo.isSubscribed
-              ? 'bg-white text-slate-900 border-slate-200 hover:border-slate-400'
+              ? 'bg-white text-slate-900 border-slate-200'
               : subInfo.isExpired
               ? 'bg-rose-50 text-rose-700 border-rose-200'
-              : 'bg-white text-slate-900 border-slate-200 hover:border-slate-400'
+              : 'bg-white text-slate-900 border-slate-200'
           }`}
         >
           <img 
@@ -782,7 +781,7 @@ export default function App() {
             className="w-3.5 h-3.5 object-contain brightness-0" 
           />
           <span>{subInfo.text}</span>
-        </button>
+        </div>
       </header>
 
       {/* Main Body */}
