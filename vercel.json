@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd pos-app && npm run build",
+  "outputDirectory": "pos-app/dist",
+  "framework": "vite"
+}
