@@ -75,9 +75,10 @@ export default function KasirView({
 
         {/* Product grid */}
         {displayedProducts.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-1">
-            <p className="text-xs font-bold text-slate-500">Menu tidak ditemukan 🔍</p>
-            <p className="text-[11px]">Coba cari dengan kata kunci lain</p>
+          <div className="text-center py-12 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1.5">
+            <img src="/search-interface-symbol.png" alt="Cari" className="w-9 h-9 object-contain opacity-35 mb-1" />
+            <p className="text-xs font-bold text-slate-600">Menu tidak ditemukan</p>
+            <p className="text-[11px] text-slate-400">Coba cari dengan kata kunci lain</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">

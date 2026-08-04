@@ -8,6 +8,8 @@ import PengaturanView from './components/PengaturanView';
 import AuthModal from './components/AuthModal';
 import PayModal from './components/PayModal';
 import AddProductModal from './components/AddProductModal';
+import SubscriptionModal from './components/SubscriptionModal';
+import PaymentSuccessModal from './components/PaymentSuccessModal';
 import { supabase } from './supabase';
 import Toast from './components/Toast';
 
@@ -52,7 +54,11 @@ export default function App() {
     }, 3000);
   };
 
-  const [viewMode, setViewMode] = useState(() => localStorage.getItem('kinipos_mode') || 'landing');
+  const [viewMode, setViewMode] = useState(() => {
+    const savedUser = localStorage.getItem('kinipos_user');
+    if (savedUser) return 'pos';
+    return localStorage.getItem('kinipos_mode') || 'landing';
+  });
   const [storeName, setStoreName] = useState(() => localStorage.getItem('kinipos_store_name') || 'Usaha Saya');
   const [savedStoreName, setSavedStoreName] = useState(() => localStorage.getItem('kinipos_store_name') || 'Usaha Saya');
   const [isSoundMuted, setIsSoundMuted] = useState(() => localStorage.getItem('kinipos_sound_muted') !== 'false');
@@ -78,16 +84,27 @@ export default function App() {
   const [appTab, setAppTab] = useState('kasir');
 
   useEffect(() => {
+    // Check if coming from email confirmation link
+    const isEmailConfirm = window.location.hash && (
+      window.location.hash.includes('access_token') ||
+      window.location.hash.includes('type=signup') ||
+      window.location.hash.includes('type=email_change')
+    );
+
     if (window.location.hash && window.location.hash.includes('type=recovery')) {
       setShowAuthModal(true);
       setAuthModalMode('reset');
-    } else if (window.location.hash) {
+    } else if (isEmailConfirm) {
+      showNotification('Email berhasil dikonfirmasi! Selamat datang di KiniPos.', 'success');
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
 
+    // Process session from Supabase Auth
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && session.user.email_confirmed_at) {
+      if (session?.user) {
         setUser(session.user);
+        setViewMode('pos');
+        localStorage.setItem('kinipos_mode', 'pos');
         localStorage.setItem('kinipos_user', JSON.stringify(session.user));
         const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
         setStoreName(store);
@@ -96,14 +113,18 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user && session.user.email_confirmed_at) {
+      if (session?.user) {
         setUser(session.user);
+        setViewMode('pos');
+        localStorage.setItem('kinipos_mode', 'pos');
         localStorage.setItem('kinipos_user', JSON.stringify(session.user));
         const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
         setStoreName(store);
         setSavedStoreName(store);
-      } else if (event === 'SIGNED_OUT' || (session?.user && !session.user.email_confirmed_at)) {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setViewMode('landing');
+        localStorage.setItem('kinipos_mode', 'landing');
         setCart([]);
         localStorage.removeItem('kinipos_user');
       }
@@ -126,11 +147,64 @@ export default function App() {
   const [targetTabPending, setTargetTabPending] = useState(null);
   const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false);
+  const [successAddedDays, setSuccessAddedDays] = useState(30);
+
+  const getSubscriptionInfo = () => {
+    if (!user) return { isSubscribed: false, isExpired: false, daysLeft: 30, text: 'Trial 30 Hari' };
+    
+    const now = new Date();
+    const subscribedUntil = user.user_metadata?.subscribed_until;
+    
+    if (subscribedUntil) {
+      const untilDate = new Date(subscribedUntil);
+      if (untilDate > now) {
+        const daysLeft = Math.ceil((untilDate - now) / (1000 * 60 * 60 * 24));
+        return { isSubscribed: true, isExpired: false, daysLeft, text: `PRO • ${daysLeft} Hari` };
+      } else {
+        return { isSubscribed: false, isExpired: true, daysLeft: 0, text: 'Masa Pro Berakhir' };
+      }
+    }
+
+    const createdAt = new Date(user.created_at || Date.now());
+    const trialEndsAt = new Date(createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    if (now >= trialEndsAt) {
+      return { isSubscribed: false, isExpired: true, daysLeft: 0, text: 'Trial Berakhir' };
+    } else {
+      const daysLeft = Math.max(1, Math.ceil((trialEndsAt - now) / (1000 * 60 * 60 * 24)));
+      return { isSubscribed: false, isExpired: false, daysLeft, text: `Trial • ${daysLeft} Hari` };
+    }
+  };
+
+  const subInfo = getSubscriptionInfo();
 
   useEffect(() => {
     setCart([]);
     if (user?.id) {
       fetchDataFromSupabase(user);
+
+      // Auto-activate subscription if returning from Midtrans Payment Link
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('payment') === 'success' || urlParams.get('order_id')) {
+        const plan = urlParams.get('plan') || 'monthly';
+        const addedDays = plan === 'yearly' ? 365 : 30;
+        
+        const now = new Date();
+        const currentUntil = user?.user_metadata?.subscribed_until ? new Date(user.user_metadata.subscribed_until) : now;
+        const baseDate = currentUntil > now ? currentUntil : now;
+        baseDate.setDate(baseDate.getDate() + addedDays);
+
+        supabase.auth.updateUser({
+          data: { subscribed_until: baseDate.toISOString() }
+        }).then(() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setSuccessAddedDays(addedDays);
+          setShowPaymentSuccessModal(true);
+          playSound('success');
+        });
+      }
     } else {
       setProducts([]);
       setHistory([]);
@@ -690,6 +764,25 @@ export default function App() {
             <p className="text-[10px] text-slate-400 font-medium leading-tight">Kasir Digital</p>
           </div>
         </div>
+
+        {/* Subscription / Trial Badge */}
+        <button
+          onClick={() => setShowSubscriptionModal(true)}
+          className={`px-3.5 py-1.5 rounded-full text-[11px] font-extrabold tracking-wide transition-all border flex items-center gap-1.5 shadow-sm ${
+            subInfo.isSubscribed
+              ? 'bg-white text-slate-900 border-slate-200 hover:border-slate-400'
+              : subInfo.isExpired
+              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              : 'bg-white text-slate-900 border-slate-200 hover:border-slate-400'
+          }`}
+        >
+          <img 
+            src="/bell.png" 
+            alt="PRO" 
+            className="w-3.5 h-3.5 object-contain brightness-0" 
+          />
+          <span>{subInfo.text}</span>
+        </button>
       </header>
 
       {/* Main Body */}
@@ -746,6 +839,8 @@ export default function App() {
             setAuthModalMode={setAuthModalMode}
             handleLogout={handleLogout}
             supabase={supabase}
+            subInfo={subInfo}
+            setShowSubscriptionModal={setShowSubscriptionModal}
           />
         )}
       </main>
@@ -935,6 +1030,31 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        isOpen={showSubscriptionModal || subInfo.isExpired}
+        isExpired={subInfo.isExpired}
+        onClose={() => setShowSubscriptionModal(false)}
+        user={user}
+        onSubscriptionSuccess={(newUntilDate) => {
+          showNotification('Berhasil Berlangganan KiniPos Pro! Terima kasih!', 'success');
+          setUser(prev => ({
+            ...prev,
+            user_metadata: {
+              ...prev?.user_metadata,
+              subscribed_until: newUntilDate
+            }
+          }));
+        }}
+      />
+
+      {/* Payment Success Modal */}
+      <PaymentSuccessModal
+        isOpen={showPaymentSuccessModal}
+        onClose={() => setShowPaymentSuccessModal(false)}
+        addedDays={successAddedDays}
+      />
 
       {/* Toast */}
       <Toast toast={toast} />

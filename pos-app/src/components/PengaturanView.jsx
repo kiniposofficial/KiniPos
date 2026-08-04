@@ -13,10 +13,75 @@ export default function PengaturanView({
   setShowAuthModal,
   setAuthModalMode,
   handleLogout,
-  supabase
+  supabase,
+  subInfo,
+  setShowSubscriptionModal
 }) {
   return (
     <div className="space-y-4 max-w-xl mx-auto">
+      
+      {/* Status Langganan / Membership Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img src="/bell.png" alt="Pro" className="w-4 h-4 object-contain brightness-0" />
+            <h3 className="text-base font-extrabold text-slate-900">Status Keanggotaan</h3>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+            subInfo?.isSubscribed 
+              ? 'bg-slate-900 text-white shadow-sm' 
+              : subInfo?.isExpired 
+              ? 'bg-rose-100 text-rose-700 border border-rose-200' 
+              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+          }`}>
+            {subInfo?.isSubscribed ? 'PRO MEMBER' : subInfo?.isExpired ? 'EXPIRED' : 'TRIAL MEMBER'}
+          </span>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-4 space-y-2.5 text-xs">
+          <div className="flex justify-between items-center text-slate-500">
+            <span className="font-medium">Tipe Akses Lapak</span>
+            <strong className="text-slate-900 font-bold">{subInfo?.isSubscribed ? 'KiniPos Pro (Akses Penuh)' : 'Uji Coba Gratis (Trial)'}</strong>
+          </div>
+          <div className="flex justify-between items-center text-slate-500">
+            <span className="font-medium">Sisa Masa Aktif</span>
+            <strong className="text-slate-900 font-bold">{subInfo?.text}</strong>
+          </div>
+          {(() => {
+            const untilStr = user?.user_metadata?.subscribed_until;
+            let validDate = null;
+            if (untilStr) {
+              validDate = new Date(untilStr);
+            } else if (user?.created_at) {
+              validDate = new Date(new Date(user.created_at).getTime() + 30 * 24 * 60 * 60 * 1000);
+            }
+            if (!validDate) return null;
+            return (
+              <div className="flex justify-between items-center text-slate-500 pt-2 border-t border-slate-200/60">
+                <span className="font-medium">Berlaku Hingga</span>
+                <strong className="text-slate-900 font-extrabold">
+                  {validDate.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </strong>
+              </div>
+            );
+          })()}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowSubscriptionModal && setShowSubscriptionModal(true)}
+          className="w-full py-3 px-4 bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200/90 hover:border-slate-300 text-slate-900 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
+        >
+          <img src="/bell.png" alt="Pro" className="w-3.5 h-3.5 object-contain brightness-0" />
+          <span>{subInfo?.isSubscribed ? 'Kelola / Perpanjang Masa Pro' : 'Upgrade ke KiniPos Pro Sekarang'}</span>
+        </button>
+      </div>
+
+      {/* Pengaturan Toko */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
         <h3 className="text-base font-bold text-slate-900">Pengaturan Toko</h3>
         <div>
@@ -84,6 +149,7 @@ export default function PengaturanView({
         </div>
       </div>
 
+      {/* Akun Lapak */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
         <h3 className="text-base font-bold text-slate-900">Akun Lapak</h3>
         {user ? (
