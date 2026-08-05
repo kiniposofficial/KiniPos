@@ -1034,6 +1034,7 @@ export default function App() {
       <SubscriptionModal
         isOpen={showSubscriptionModal || subInfo.isExpired}
         isExpired={subInfo.isExpired}
+        subInfo={subInfo}
         onClose={() => setShowSubscriptionModal(false)}
         user={user}
         onSubscriptionSuccess={(newUntilDate) => {
