@@ -8,7 +8,51 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'kinipos_logo.png', 'robots.txt', 'apple-touch-icon.png'],
+      includeAssets: [
+        'favicon.ico',
+        'kinipos_logo.png',
+        'robots.txt',
+        'apple-touch-icon.png',
+        'bell.png',
+        'bin.png',
+        'calendar.png',
+        'cash.png',
+        'cashier-machine.png',
+        'check.png',
+        'edit.png',
+        'logout.png',
+        'menu.png',
+        'no-sound.png',
+        'omset.png',
+        'qr-code.png',
+        'search-interface-symbol.png',
+        'settings.png',
+        'shopping-cart.png',
+        'sounds.png',
+        'streetbooth.jpg',
+        'volume.png',
+        'wallet.png',
+        'whatsapp.png'
+      ],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,svg,webp,mp3,wav}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'supabase-media-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
       manifest: {
         name: 'Kini Pos',
         short_name: 'KiniPos',

@@ -104,7 +104,12 @@ export default function KasirView({
                 )}
 
                 {p.image_url && (
-                  <img src={p.image_url} alt={p.name} className="w-full h-20 object-contain rounded-xl mb-2 bg-slate-50 p-1" />
+                  <img
+                    src={p.image_url}
+                    alt={p.name}
+                    className="w-full h-20 object-contain rounded-xl mb-2 bg-slate-50 p-1"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
                 )}
                 
                 <div className="w-full">
