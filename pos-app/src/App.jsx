@@ -287,6 +287,12 @@ export default function App() {
         setProducts([]);
       }
 
+      // Get list of locally deleted transaction IDs
+      let deletedTxIds = [];
+      try {
+        deletedTxIds = JSON.parse(localStorage.getItem('kinipos_deleted_tx') || '[]');
+      } catch (e) {}
+
       // Fetch transactions strictly for current user
       const { data: dbTx } = await supabase
         .from('transactions')
@@ -294,40 +300,47 @@ export default function App() {
         .eq('user_id', targetUser.id)
         .order('created_at', { ascending: false });
 
-      if (dbTx && dbTx.length > 0) {
-        const formattedTx = dbTx.map(t => ({
-          id: t.id,
-          created_at: t.created_at,
-          timestamp: new Date(t.created_at).getTime(),
-          date: new Date(t.created_at).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          }) + ' ' + new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-          items: t.items || [],
-          total: t.total,
-          costTotal: t.cost_total,
-          profit: t.profit,
-          payMethod: t.pay_method,
-          paid: t.paid,
-          change: t.change,
-          waPhone: t.wa_phone
-        }));
-        setHistory(formattedTx);
+      const localHistRaw = localStorage.getItem(`kinipos_history_${targetUser.id}`) || localStorage.getItem('kinipos_history');
+      let localHist = [];
+      if (localHistRaw) {
+        try {
+          const parsed = JSON.parse(localHistRaw);
+          if (Array.isArray(parsed)) localHist = parsed;
+        } catch(e) {}
+      }
+
+      const formattedDbTx = (dbTx || []).map(t => ({
+        id: t.id,
+        created_at: t.created_at,
+        timestamp: new Date(t.created_at).getTime(),
+        date: new Date(t.created_at).toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }) + ' ' + new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        items: t.items || [],
+        total: t.total,
+        costTotal: t.cost_total,
+        profit: t.profit,
+        payMethod: t.pay_method,
+        paid: t.paid,
+        change: t.change,
+        waPhone: t.wa_phone
+      })).filter(t => t && !deletedTxIds.includes(t.id));
+
+      const validLocalHist = localHist.filter(t => t && t.id && !deletedTxIds.includes(t.id));
+
+      if (formattedDbTx.length > 0) {
+        const dbIds = new Set(formattedDbTx.map(t => t.id));
+        const missingLocalHist = validLocalHist.filter(t => !dbIds.has(t.id));
+        const mergedHist = [...formattedDbTx, ...missingLocalHist];
+        setHistory(mergedHist);
+        localStorage.setItem(`kinipos_history_${targetUser.id}`, JSON.stringify(mergedHist));
+      } else if (validLocalHist.length > 0) {
+        setHistory(validLocalHist);
       } else {
-        const localHist = localStorage.getItem(`kinipos_history_${targetUser.id}`);
-        if (localHist) {
-          try {
-            const parsedHist = JSON.parse(localHist);
-            if (Array.isArray(parsedHist)) setHistory(parsedHist);
-            else setHistory([]);
-          } catch (e) {
-            setHistory([]);
-          }
-        } else {
-          setHistory([]);
-        }
+        setHistory([]);
       }
     } catch (e) {
       console.log('Error fetching user data', e);
@@ -712,7 +725,21 @@ export default function App() {
     const txToCancel = history.find(t => t.id === txId);
 
     if (txToCancel) {
-      setHistory(prev => prev.filter(t => t.id !== txId));
+      try {
+        const deletedTxIds = JSON.parse(localStorage.getItem('kinipos_deleted_tx') || '[]');
+        if (!deletedTxIds.includes(txId)) {
+          localStorage.setItem('kinipos_deleted_tx', JSON.stringify([...deletedTxIds, txId]));
+        }
+      } catch (e) {}
+
+      setHistory(prev => {
+        const updated = prev.filter(t => t.id !== txId);
+        if (user?.id) {
+          localStorage.setItem(`kinipos_history_${user.id}`, JSON.stringify(updated));
+        }
+        localStorage.setItem('kinipos_history', JSON.stringify(updated));
+        return updated;
+      });
 
       if (txToCancel.items && txToCancel.items.length > 0) {
         setProducts(prevProducts => {
