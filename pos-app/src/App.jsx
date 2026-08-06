@@ -10,6 +10,7 @@ import PayModal from './components/PayModal';
 import AddProductModal from './components/AddProductModal';
 import SubscriptionModal from './components/SubscriptionModal';
 import PaymentSuccessModal from './components/PaymentSuccessModal';
+import InstallGuideModal from './components/InstallGuideModal';
 import { supabase } from './supabase';
 import Toast from './components/Toast';
 
@@ -75,6 +76,7 @@ export default function App() {
   const [amountPaidInput, setAmountPaidInput] = useState('');
   const [completedTx, setCompletedTx] = useState(null);
   const [waPhone, setWaPhone] = useState('');
+  const [showInstallGuideModal, setShowInstallGuideModal] = useState(false);
 
   const [history, setHistory] = useState(() => {
     if (!user?.id) return [];
@@ -840,6 +842,7 @@ export default function App() {
             supabase={supabase}
             subInfo={subInfo}
             setShowSubscriptionModal={setShowSubscriptionModal}
+            onOpenInstallGuide={() => setShowInstallGuideModal(true)}
           />
         )}
       </main>
@@ -1054,6 +1057,12 @@ export default function App() {
         isOpen={showPaymentSuccessModal}
         onClose={() => setShowPaymentSuccessModal(false)}
         addedDays={successAddedDays}
+      />
+
+      {/* Install Guide Modal */}
+      <InstallGuideModal
+        isOpen={showInstallGuideModal}
+        onClose={() => setShowInstallGuideModal(false)}
       />
 
       {/* Toast */}

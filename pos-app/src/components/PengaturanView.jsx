@@ -15,7 +15,8 @@ export default function PengaturanView({
   handleLogout,
   supabase,
   subInfo,
-  setShowSubscriptionModal
+  setShowSubscriptionModal,
+  onOpenInstallGuide
 }) {
   return (
     <div className="space-y-4 max-w-xl mx-auto">
