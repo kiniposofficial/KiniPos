@@ -62,6 +62,7 @@ export default function App() {
   });
   const [storeName, setStoreName] = useState(() => localStorage.getItem('kinipos_store_name') || 'Usaha Saya');
   const [savedStoreName, setSavedStoreName] = useState(() => localStorage.getItem('kinipos_store_name') || 'Usaha Saya');
+  const [qrisImage, setQrisImage] = useState(() => localStorage.getItem('kinipos_qris_image') || '');
   const [isSoundMuted, setIsSoundMuted] = useState(() => localStorage.getItem('kinipos_sound_muted') !== 'false');
   const [products, setProducts] = useState(() => {
     if (!user?.id) return DEFAULT_PRODUCTS;
@@ -843,6 +844,8 @@ export default function App() {
             subInfo={subInfo}
             setShowSubscriptionModal={setShowSubscriptionModal}
             onOpenInstallGuide={() => setShowInstallGuideModal(true)}
+            qrisImage={qrisImage}
+            setQrisImage={setQrisImage}
           />
         )}
       </main>
@@ -904,6 +907,10 @@ export default function App() {
         handleFinishTransaction={handleFinishTransaction}
         resetAllTx={resetAllTx}
         formatRp={formatRp}
+        qrisImage={qrisImage}
+        setQrisImage={setQrisImage}
+        storeName={savedStoreName}
+        setAppTab={setAppTab}
       />
 
       {/* Modal Add / Edit Product */}

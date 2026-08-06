@@ -16,11 +16,13 @@ export default function PengaturanView({
   supabase,
   subInfo,
   setShowSubscriptionModal,
-  onOpenInstallGuide
+  onOpenInstallGuide,
+  qrisImage,
+  setQrisImage
 }) {
   return (
-    <div className="space-y-4 max-w-xl mx-auto">
-      
+    <div className="space-y-4 max-w-xl mx-auto font-metropolis">
+
       {/* Status Langganan / Membership Card */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-sm">
         <div className="flex items-center justify-between">
@@ -28,13 +30,12 @@ export default function PengaturanView({
             <img src="/bell.png" alt="Pro" className="w-4 h-4 object-contain brightness-0" />
             <h3 className="text-base font-extrabold text-slate-900">Status Keanggotaan</h3>
           </div>
-          <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-            subInfo?.isSubscribed 
-              ? 'bg-slate-900 text-white shadow-sm' 
-              : subInfo?.isExpired 
-              ? 'bg-rose-100 text-rose-700 border border-rose-200' 
-              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-          }`}>
+          <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${subInfo?.isSubscribed
+              ? 'bg-slate-900 text-white shadow-sm'
+              : subInfo?.isExpired
+                ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+            }`}>
             {subInfo?.isSubscribed ? 'PRO MEMBER' : subInfo?.isExpired ? 'EXPIRED' : 'TRIAL MEMBER'}
           </span>
         </div>
@@ -107,10 +108,10 @@ export default function PengaturanView({
                     await supabase.auth.updateUser({
                       data: { store_name: storeName }
                     });
-                  } catch (err) {}
+                  } catch (err) { }
                 }
-                playSound('success');
-                showNotification('Nama toko berhasil disimpan! 🏪', 'success');
+                if (playSound) playSound('success');
+                if (showNotification) showNotification('Nama toko berhasil disimpan! 🏪', 'success');
               }}
             >
               Simpan
@@ -129,15 +130,14 @@ export default function PengaturanView({
           </div>
           <button
             type="button"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
-              isSoundMuted ? 'bg-slate-100 text-slate-500 border-slate-300' : 'bg-emerald-500 text-white border-emerald-600'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition ${isSoundMuted ? 'bg-slate-100 text-slate-500 border-slate-300' : 'bg-emerald-500 text-white border-emerald-600'
+              }`}
             onClick={() => {
               const newMuted = !isSoundMuted;
               setIsSoundMuted(newMuted);
               localStorage.setItem('kinipos_sound_muted', newMuted.toString());
-              if (!newMuted) playSound('click');
-              showNotification(newMuted ? 'Suara aplikasi DIMATIKAN' : 'Suara aplikasi DIAKTIFKAN', 'sound_' + (newMuted ? 'off' : 'on'));
+              if (!newMuted && playSound) playSound('click');
+              if (showNotification) showNotification(newMuted ? 'Suara aplikasi DIMATIKAN' : 'Suara aplikasi DIAKTIFKAN', 'sound_' + (newMuted ? 'off' : 'on'));
             }}
           >
             <img
@@ -148,6 +148,95 @@ export default function PengaturanView({
             {isSoundMuted ? 'MATI' : 'AKTIF'}
           </button>
         </div>
+      </div>
+
+      {/* Stiker QRIS Toko */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+              <img src="/qr-code.png" alt="QRIS" className="w-4 h-4 object-contain" /> Stiker QRIS Toko
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Upload foto stiker QRIS (DANA Bisnis, BCA, GoPay, DANA, dll) untuk kasir.
+            </p>
+          </div>
+        </div>
+
+        {qrisImage ? (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center gap-3">
+            <img src={qrisImage} alt="Stiker QRIS Toko" className="w-20 h-20 object-contain rounded-lg border border-slate-200 bg-white shadow-sm" />
+            <div className="flex-1 space-y-1.5">
+              <span className="text-xs font-bold text-slate-800 block">Stiker QRIS Aktif ✅</span>
+              <p className="text-[11px] text-slate-500">Tampil otomatis saat pembeli memilih bayar via QRIS.</p>
+              <div className="flex gap-2 pt-1">
+                <label className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition shadow-sm">
+                  Ganti Stiker
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          const base64 = evt.target.result;
+                          localStorage.setItem('kinipos_qris_image', base64);
+                          if (setQrisImage) setQrisImage(base64);
+                          if (playSound) playSound('success');
+                          if (showNotification) showNotification('Stiker QRIS Toko berhasil diperbarui! 📸', 'success');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                  onClick={() => {
+                    localStorage.removeItem('kinipos_qris_image');
+                    if (setQrisImage) setQrisImage('');
+                    if (showNotification) showNotification('Stiker QRIS dihapus', 'info');
+                  }}
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-5 text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition bg-slate-50 hover:bg-slate-100">
+            <img src="/qr-code.png" alt="Upload QRIS" className="w-8 h-8 object-contain opacity-50" />
+            <div>
+              <span className="text-xs font-bold text-slate-800 block">Upload Stiker QRIS Toko</span>
+              <span className="text-[11px] text-slate-500 block mt-0.5">Format JPG / PNG (DANA, BCA, GoPay, DANA Bisnis, dll)</span>
+            </div>
+            <span className="bg-white text-slate-900 border border-slate-200 font-bold text-xs px-4 py-2 rounded-xl mt-1 shadow-sm flex items-center gap-1.5 hover:bg-slate-50 transition">
+              <img src="/image-.png" alt="QRIS Icon" className="w-3.5 h-3.5 object-contain rounded" /> Pilih Foto QRIS
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (evt) => {
+                    const base64 = evt.target.result;
+                    localStorage.setItem('kinipos_qris_image', base64);
+                    if (setQrisImage) setQrisImage(base64);
+                    if (playSound) playSound('success');
+                    if (showNotification) showNotification('Stiker QRIS Toko berhasil disimpan! 📸', 'success');
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+          </label>
+        )}
       </div>
 
       {/* Akun Lapak */}
