@@ -35,6 +35,9 @@ export default defineConfig({
         'whatsapp.png'
       ],
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,svg,webp,mp3,wav}'],
         runtimeCaching: [
           {
