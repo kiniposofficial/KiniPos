@@ -10,8 +10,8 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
 
   const isAlreadyProActive = subInfo?.isSubscribed && (subInfo?.daysLeft > 5);
 
-  const monthlyLink = import.meta.env.VITE_MIDTRANS_MONTHLY_LINK || 'https://app.midtrans.com/payment-links/ab0b964d-d3f9-4f39-ae0b-818b9d48e240-1oP2fH8S';
-  const yearlyLink = import.meta.env.VITE_MIDTRANS_YEARLY_LINK || 'https://app.midtrans.com/payment-links/e1ad8f27-e78b-4477-adf3-45d2f005c54d-ECpd7l7T';
+  const monthlyLink = import.meta.env.VITE_MIDTRANS_MONTHLY_LINK || 'https://app.midtrans.com/payment-links/e1ad8f27-e78b-4477-adf3-45d2f005c54d-ECpd7l7T';
+  const yearlyLink = import.meta.env.VITE_MIDTRANS_YEARLY_LINK || 'https://app.midtrans.com/payment-links/ab0b964d-d3f9-4f39-ae0b-818b9d48e240-1oP2fH8S';
 
   const handlePayment = async () => {
     if (isAlreadyProActive) return;
