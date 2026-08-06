@@ -250,6 +250,12 @@ export default function App() {
     try {
       setIsDataLoaded(false);
 
+      // Get list of locally deleted product IDs
+      let deletedIds = [];
+      try {
+        deletedIds = JSON.parse(localStorage.getItem('kinipos_deleted_products') || '[]');
+      } catch (e) {}
+
       // Fetch products strictly for current user
       const { data: dbProducts } = await supabase
         .from('products')
@@ -265,15 +271,20 @@ export default function App() {
         } catch(e) {}
       }
 
-      if (dbProducts && dbProducts.length > 0) {
-        // Merge DB products with local products so locally created ones are never overwritten
-        const dbIds = new Set(dbProducts.map(p => p.id));
-        const missingLocalProds = localProducts.filter(p => p && p.id && !dbIds.has(p.id));
-        const mergedProducts = [...dbProducts, ...missingLocalProds];
+      // Filter out any deleted IDs
+      const validDbProducts = (dbProducts || []).filter(p => p && !deletedIds.includes(p.id));
+      const validLocalProducts = localProducts.filter(p => p && !deletedIds.includes(p.id));
+
+      if (validDbProducts.length > 0) {
+        const dbIds = new Set(validDbProducts.map(p => p.id));
+        const missingLocalProds = validLocalProducts.filter(p => p && p.id && !dbIds.has(p.id));
+        const mergedProducts = [...validDbProducts, ...missingLocalProds];
         setProducts(mergedProducts);
         localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(mergedProducts));
-      } else if (localProducts.length > 0) {
-        setProducts(localProducts);
+      } else if (validLocalProducts.length > 0) {
+        setProducts(validLocalProducts);
+      } else {
+        setProducts([]);
       }
 
       // Fetch transactions strictly for current user
@@ -667,7 +678,22 @@ export default function App() {
   };
 
   const deleteProduct = async (id) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+    try {
+      const deletedIds = JSON.parse(localStorage.getItem('kinipos_deleted_products') || '[]');
+      if (!deletedIds.includes(id)) {
+        localStorage.setItem('kinipos_deleted_products', JSON.stringify([...deletedIds, id]));
+      }
+    } catch (e) {}
+
+    setProducts(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      if (user?.id) {
+        localStorage.setItem(`kinipos_products_${user.id}`, JSON.stringify(updated));
+      }
+      localStorage.setItem('kinipos_products', JSON.stringify(updated));
+      return updated;
+    });
+
     playSound('click');
     showNotification('Menu berhasil dihapus 🗑️', 'info');
 
