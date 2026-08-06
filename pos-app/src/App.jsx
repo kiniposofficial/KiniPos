@@ -256,19 +256,24 @@ export default function App() {
         .select('*')
         .eq('user_id', targetUser.id);
 
+      const localProdRaw = localStorage.getItem(`kinipos_products_${targetUser.id}`) || localStorage.getItem('kinipos_products');
+      let localProducts = [];
+      if (localProdRaw) {
+        try {
+          const parsed = JSON.parse(localProdRaw);
+          if (Array.isArray(parsed)) localProducts = parsed;
+        } catch(e) {}
+      }
+
       if (dbProducts && dbProducts.length > 0) {
-        setProducts(dbProducts);
-        localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(dbProducts));
-      } else {
-        const localProd = localStorage.getItem(`kinipos_products_${targetUser.id}`) || localStorage.getItem('kinipos_products');
-        if (localProd) {
-          try {
-            const parsedProd = JSON.parse(localProd);
-            if (Array.isArray(parsedProd) && parsedProd.length > 0) {
-              setProducts(parsedProd);
-            }
-          } catch (e) {}
-        }
+        // Merge DB products with local products so locally created ones are never overwritten
+        const dbIds = new Set(dbProducts.map(p => p.id));
+        const missingLocalProds = localProducts.filter(p => p && p.id && !dbIds.has(p.id));
+        const mergedProducts = [...dbProducts, ...missingLocalProds];
+        setProducts(mergedProducts);
+        localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(mergedProducts));
+      } else if (localProducts.length > 0) {
+        setProducts(localProducts);
       }
 
       // Fetch transactions strictly for current user
