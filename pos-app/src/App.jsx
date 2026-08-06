@@ -215,10 +215,34 @@ export default function App() {
     }
   }, [user]);
 
+  // Persist products to localStorage
+  useEffect(() => {
+    if (products && products.length > 0) {
+      if (user?.id) {
+        localStorage.setItem(`kinipos_products_${user.id}`, JSON.stringify(products));
+      }
+      localStorage.setItem('kinipos_products', JSON.stringify(products));
+    }
+  }, [products, user]);
+
+  // Persist history to localStorage
+  useEffect(() => {
+    if (history && history.length > 0) {
+      if (user?.id) {
+        localStorage.setItem(`kinipos_history_${user.id}`, JSON.stringify(history));
+      }
+      localStorage.setItem('kinipos_history', JSON.stringify(history));
+    }
+  }, [history, user]);
+
   const fetchDataFromSupabase = async (targetUser = user) => {
     if (!targetUser?.id) {
-      setProducts([]);
-      setHistory([]);
+      const localProd = localStorage.getItem('kinipos_products');
+      if (localProd) {
+        try { setProducts(JSON.parse(localProd)); } catch (e) { setProducts(DEFAULT_PRODUCTS); }
+      } else {
+        setProducts(DEFAULT_PRODUCTS);
+      }
       setIsDataLoaded(true);
       return;
     }
@@ -234,6 +258,7 @@ export default function App() {
 
       if (dbProducts && dbProducts.length > 0) {
         setProducts(dbProducts);
+        localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(dbProducts));
       } else {
         const localProd = localStorage.getItem(`kinipos_products_${targetUser.id}`) || localStorage.getItem('kinipos_products');
         if (localProd) {
@@ -241,14 +266,8 @@ export default function App() {
             const parsedProd = JSON.parse(localProd);
             if (Array.isArray(parsedProd) && parsedProd.length > 0) {
               setProducts(parsedProd);
-            } else {
-              setProducts([]);
             }
-          } catch (e) {
-            setProducts([]);
-          }
-        } else {
-          setProducts([]);
+          } catch (e) {}
         }
       }
 
