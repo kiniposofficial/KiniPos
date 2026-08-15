@@ -22,6 +22,12 @@ export default function AddProductModal({
   DEFAULT_CATEGORIES,
   formatRp
 }) {
+  const [previewUrl, setPreviewUrl] = React.useState(null);
+
+  React.useEffect(() => {
+    setPreviewUrl(null);
+  }, [showAddProductModal, editingProduct]);
+
   if (!showAddProductModal) return null;
 
   return (
@@ -126,17 +132,96 @@ export default function AddProductModal({
           )}
 
           <div>
-            <label className="text-xs font-semibold text-slate-600 block mb-1">Foto Menu (Opsional):</label>
-            <input
-              type="file"
-              accept="image/*"
-              className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-              onChange={(e) => setNewProdImageFile(e.target.files[0])}
-            />
-            {editingProduct && editingProduct.image_url && (
-              <small className="text-[11px] text-slate-400 block mt-1">
-                *Foto saat ini sudah terpasang. Pilih file baru jika ingin mengganti.
-              </small>
+            <label className="text-xs font-semibold text-slate-600 block mb-1.5">Foto Menu (Opsional):</label>
+            {editingProduct && (editingProduct.image_url || previewUrl) ? (
+              <div className="relative group rounded-xl border border-slate-200 overflow-hidden bg-slate-50 p-2.5 flex items-center gap-3">
+                <img
+                  src={previewUrl || editingProduct.image_url}
+                  alt="Preview Menu"
+                  className="w-14 h-14 object-cover rounded-lg shadow-sm border border-slate-200 bg-white"
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-bold text-slate-800 block truncate">
+                    {previewUrl ? 'Foto Baru Dipilih' : 'Foto Menu Terpasang'}
+                  </span>
+                  <span className="text-[11px] text-emerald-600 font-semibold block mt-0.5 flex items-center gap-1">
+                    ✓ Siap Di-upload
+                  </span>
+                </div>
+                <label className="cursor-pointer bg-white text-slate-800 border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition active:scale-95">
+                  Ganti
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setNewProdImageFile(file);
+                        setPreviewUrl(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            ) : previewUrl ? (
+              <div className="relative group rounded-xl border border-slate-200 overflow-hidden bg-slate-50 p-2.5 flex items-center gap-3">
+                <img
+                  src={previewUrl}
+                  alt="Preview Menu"
+                  className="w-14 h-14 object-cover rounded-lg shadow-sm border border-slate-200 bg-white"
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-bold text-slate-800 block truncate">
+                    Foto Baru Dipilih
+                  </span>
+                  <span className="text-[11px] text-emerald-600 font-semibold block mt-0.5">
+                    ✓ Siap Di-upload
+                  </span>
+                </div>
+                <label className="cursor-pointer bg-white text-slate-800 border border-slate-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition active:scale-95">
+                  Ganti
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setNewProdImageFile(file);
+                        setPreviewUrl(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-4 text-center flex flex-col items-center justify-center gap-2 cursor-pointer transition bg-slate-50 hover:bg-slate-100/80 group">
+                <div className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center group-hover:scale-105 transition">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">Upload Foto Menu</span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">Format JPG / PNG (Maks 5MB)</span>
+                </div>
+                <span className="bg-white text-slate-900 border border-slate-200 font-bold text-xs px-3.5 py-1.5 rounded-lg mt-0.5 shadow-sm flex items-center gap-1.5 hover:bg-slate-50 transition">
+                  <img src="/image-.png" alt="Upload" className="w-3.5 h-3.5 object-contain" /> Pilih Foto
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setNewProdImageFile(file);
+                      setPreviewUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
             )}
           </div>
 
