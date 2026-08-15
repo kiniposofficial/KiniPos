@@ -188,6 +188,22 @@ export default function App() {
     if (user?.id) {
       fetchDataFromSupabase(user);
 
+      // Realtime listener for multi-device sync
+      const channel = supabase
+        .channel(`user-sync-${user.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `user_id=eq.${user.id}` }, () => {
+          fetchDataFromSupabase(user);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => {
+          fetchDataFromSupabase(user);
+        })
+        .subscribe();
+
+      const handleFocus = () => {
+        fetchDataFromSupabase(user);
+      };
+      window.addEventListener('focus', handleFocus);
+
       // Auto-activate subscription if returning from Midtrans Payment Link
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('payment') === 'success' || urlParams.get('order_id')) {
@@ -208,6 +224,11 @@ export default function App() {
           playSound('success');
         });
       }
+
+      return () => {
+        supabase.removeChannel(channel);
+        window.removeEventListener('focus', handleFocus);
+      };
     } else {
       setProducts([]);
       setHistory([]);
@@ -257,7 +278,7 @@ export default function App() {
       } catch (e) {}
 
       // Fetch products strictly for current user
-      const { data: dbProducts } = await supabase
+      const { data: dbProducts, error: dbProdErr } = await supabase
         .from('products')
         .select('*')
         .eq('user_id', targetUser.id);
@@ -271,20 +292,21 @@ export default function App() {
         } catch(e) {}
       }
 
-      // Filter out any deleted IDs
-      const validDbProducts = (dbProducts || []).filter(p => p && !deletedIds.includes(p.id));
-      const validLocalProducts = localProducts.filter(p => p && !deletedIds.includes(p.id));
-
-      if (validDbProducts.length > 0) {
+      if (!dbProdErr && dbProducts) {
+        const validDbProducts = dbProducts.filter(p => p && !deletedIds.includes(p.id));
         const dbIds = new Set(validDbProducts.map(p => p.id));
-        const missingLocalProds = validLocalProducts.filter(p => p && p.id && !dbIds.has(p.id));
-        const mergedProducts = [...validDbProducts, ...missingLocalProds];
+        // Only keep unsynced local products (those with temporary numeric string IDs, not UUIDs from Supabase)
+        const unsyncedLocalProds = localProducts.filter(p => {
+          if (!p || !p.id || dbIds.has(p.id) || deletedIds.includes(p.id)) return false;
+          return typeof p.id === 'string' && !p.id.includes('-');
+        });
+
+        const mergedProducts = [...validDbProducts, ...unsyncedLocalProds];
         setProducts(mergedProducts);
         localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(mergedProducts));
-      } else if (validLocalProducts.length > 0) {
-        setProducts(validLocalProducts);
       } else {
-        setProducts([]);
+        const validLocalProducts = localProducts.filter(p => p && !deletedIds.includes(p.id));
+        setProducts(validLocalProducts);
       }
 
       // Get list of locally deleted transaction IDs
@@ -294,7 +316,7 @@ export default function App() {
       } catch (e) {}
 
       // Fetch transactions strictly for current user
-      const { data: dbTx } = await supabase
+      const { data: dbTx, error: dbTxErr } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', targetUser.id)
@@ -309,38 +331,32 @@ export default function App() {
         } catch(e) {}
       }
 
-      const formattedDbTx = (dbTx || []).map(t => ({
-        id: t.id,
-        created_at: t.created_at,
-        timestamp: new Date(t.created_at).getTime(),
-        date: new Date(t.created_at).toLocaleDateString('id-ID', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        }) + ' ' + new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        items: t.items || [],
-        total: t.total,
-        costTotal: t.cost_total,
-        profit: t.profit,
-        payMethod: t.pay_method,
-        paid: t.paid,
-        change: t.change,
-        waPhone: t.wa_phone
-      })).filter(t => t && !deletedTxIds.includes(t.id));
+      if (!dbTxErr && dbTx) {
+        const formattedDbTx = dbTx.map(t => ({
+          id: t.id,
+          created_at: t.created_at,
+          timestamp: new Date(t.created_at).getTime(),
+          date: new Date(t.created_at).toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          }) + ' ' + new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+          items: t.items || [],
+          total: t.total,
+          costTotal: t.cost_total,
+          profit: t.profit,
+          payMethod: t.pay_method,
+          paid: t.paid,
+          change: t.change,
+          waPhone: t.wa_phone
+        })).filter(t => t && !deletedTxIds.includes(t.id));
 
-      const validLocalHist = localHist.filter(t => t && t.id && !deletedTxIds.includes(t.id));
-
-      if (formattedDbTx.length > 0) {
-        const dbIds = new Set(formattedDbTx.map(t => t.id));
-        const missingLocalHist = validLocalHist.filter(t => !dbIds.has(t.id));
-        const mergedHist = [...formattedDbTx, ...missingLocalHist];
-        setHistory(mergedHist);
-        localStorage.setItem(`kinipos_history_${targetUser.id}`, JSON.stringify(mergedHist));
-      } else if (validLocalHist.length > 0) {
-        setHistory(validLocalHist);
+        setHistory(formattedDbTx);
+        localStorage.setItem(`kinipos_history_${targetUser.id}`, JSON.stringify(formattedDbTx));
       } else {
-        setHistory([]);
+        const validLocalHist = localHist.filter(t => t && t.id && !deletedTxIds.includes(t.id));
+        setHistory(validLocalHist);
       }
     } catch (e) {
       console.log('Error fetching user data', e);
