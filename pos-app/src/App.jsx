@@ -293,17 +293,37 @@ export default function App() {
       }
 
       if (!dbProdErr && dbProducts) {
-        const validDbProducts = dbProducts.filter(p => p && !deletedIds.includes(p.id));
-        const dbIds = new Set(validDbProducts.map(p => p.id));
-        // Only keep unsynced local products (those with temporary numeric string IDs, not UUIDs from Supabase)
-        const unsyncedLocalProds = localProducts.filter(p => {
-          if (!p || !p.id || dbIds.has(p.id) || deletedIds.includes(p.id)) return false;
-          return typeof p.id === 'string' && !p.id.includes('-');
-        });
+        // 1. Sync any local unsynced products to Supabase (if created offline previously)
+        const dbIds = new Set(dbProducts.map(p => p.id));
+        const unsyncedProds = localProducts.filter(p => p && p.id && !dbIds.has(p.id) && !deletedIds.includes(p.id) && typeof p.id === 'string' && !p.id.includes('-'));
 
-        const mergedProducts = [...validDbProducts, ...unsyncedLocalProds];
-        setProducts(mergedProducts);
-        localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(mergedProducts));
+        if (unsyncedProds.length > 0) {
+          for (const localP of unsyncedProds) {
+            try {
+              await supabase.from('products').insert([{
+                name: localP.name,
+                price: localP.price,
+                cost: localP.cost || 0,
+                category: localP.category || 'Lainnya',
+                is_unlimited: localP.is_unlimited ?? true,
+                stock: localP.stock ?? null,
+                image_url: localP.image_url || '',
+                user_id: targetUser.id
+              }]);
+            } catch (e) {}
+          }
+          const { data: freshDb } = await supabase.from('products').select('*').eq('user_id', targetUser.id);
+          if (freshDb) {
+            setProducts(freshDb);
+            localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(freshDb));
+          } else {
+            setProducts(dbProducts);
+            localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(dbProducts));
+          }
+        } else {
+          setProducts(dbProducts);
+          localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(dbProducts));
+        }
       } else {
         const validLocalProducts = localProducts.filter(p => p && !deletedIds.includes(p.id));
         setProducts(validLocalProducts);
