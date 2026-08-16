@@ -94,16 +94,36 @@ export default function App() {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
 
-    // Process session from Supabase Auth
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user);
+    // Process session from Supabase Auth with fresh user profile metadata
+    supabase.auth.getUser().then(({ data: { user: freshUser } }) => {
+      if (freshUser) {
+        setUser(freshUser);
         setViewMode('pos');
         localStorage.setItem('kinipos_mode', 'pos');
-        localStorage.setItem('kinipos_user', JSON.stringify(session.user));
-        const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
+        localStorage.setItem('kinipos_user', JSON.stringify(freshUser));
+        const store = freshUser.user_metadata?.store_name || freshUser.email?.split('@')[0] || 'Usaha Saya';
         setStoreName(store);
         setSavedStoreName(store);
+        if (freshUser.user_metadata?.qris_image) {
+          setQrisImage(freshUser.user_metadata.qris_image);
+          localStorage.setItem('kinipos_qris_image', freshUser.user_metadata.qris_image);
+        }
+      } else {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            setUser(session.user);
+            setViewMode('pos');
+            localStorage.setItem('kinipos_mode', 'pos');
+            localStorage.setItem('kinipos_user', JSON.stringify(session.user));
+            const store = session.user.user_metadata?.store_name || session.user.email?.split('@')[0] || 'Usaha Saya';
+            setStoreName(store);
+            setSavedStoreName(store);
+            if (session.user.user_metadata?.qris_image) {
+              setQrisImage(session.user.user_metadata.qris_image);
+              localStorage.setItem('kinipos_qris_image', session.user.user_metadata.qris_image);
+            }
+          }
+        });
       }
     });
 
