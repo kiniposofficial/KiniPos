@@ -176,7 +176,7 @@ export default function PengaturanView({
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files[0];
                       if (file) {
                         const reader = new FileReader();
@@ -256,7 +256,7 @@ export default function PengaturanView({
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files[0];
                 if (file) {
                   const reader = new FileReader();
