@@ -64,11 +64,7 @@ export default function App() {
   const [savedStoreName, setSavedStoreName] = useState(() => localStorage.getItem('kinipos_store_name') || 'Usaha Saya');
   const [qrisImage, setQrisImage] = useState(() => localStorage.getItem('kinipos_qris_image') || '');
   const [isSoundMuted, setIsSoundMuted] = useState(() => localStorage.getItem('kinipos_sound_muted') !== 'false');
-  const [products, setProducts] = useState(() => {
-    if (!user?.id) return DEFAULT_PRODUCTS;
-    const saved = localStorage.getItem(`kinipos_products_${user.id}`);
-    return saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
-  });
+  const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [cart, setCart] = useState([]);
 
@@ -79,11 +75,7 @@ export default function App() {
   const [waPhone, setWaPhone] = useState('');
   const [showInstallGuideModal, setShowInstallGuideModal] = useState(false);
 
-  const [history, setHistory] = useState(() => {
-    if (!user?.id) return [];
-    const saved = localStorage.getItem(`kinipos_history_${user.id}`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [history, setHistory] = useState([]);
   const [appTab, setAppTab] = useState('kasir');
 
   useEffect(() => {
@@ -236,34 +228,12 @@ export default function App() {
     }
   }, [user]);
 
-  // Persist products to localStorage
-  useEffect(() => {
-    if (products && products.length > 0) {
-      if (user?.id) {
-        localStorage.setItem(`kinipos_products_${user.id}`, JSON.stringify(products));
-      }
-      localStorage.setItem('kinipos_products', JSON.stringify(products));
-    }
-  }, [products, user]);
 
-  // Persist history to localStorage
-  useEffect(() => {
-    if (history && history.length > 0) {
-      if (user?.id) {
-        localStorage.setItem(`kinipos_history_${user.id}`, JSON.stringify(history));
-      }
-      localStorage.setItem('kinipos_history', JSON.stringify(history));
-    }
-  }, [history, user]);
 
   const fetchDataFromSupabase = async (targetUser = user) => {
     if (!targetUser?.id) {
-      const localProd = localStorage.getItem('kinipos_products');
-      if (localProd) {
-        try { setProducts(JSON.parse(localProd)); } catch (e) { setProducts(DEFAULT_PRODUCTS); }
-      } else {
-        setProducts(DEFAULT_PRODUCTS);
-      }
+      setProducts([]);
+      setHistory([]);
       setIsDataLoaded(true);
       return;
     }
@@ -271,85 +241,25 @@ export default function App() {
     try {
       setIsDataLoaded(false);
 
-      // Get list of locally deleted product IDs
-      let deletedIds = [];
-      try {
-        deletedIds = JSON.parse(localStorage.getItem('kinipos_deleted_products') || '[]');
-      } catch (e) {}
-
-      // Fetch products strictly for current user
+      // Fetch products from Supabase (single source of truth)
       const { data: dbProducts, error: dbProdErr } = await supabase
         .from('products')
         .select('*')
         .eq('user_id', targetUser.id);
 
-      const localProdRaw = localStorage.getItem(`kinipos_products_${targetUser.id}`) || localStorage.getItem('kinipos_products');
-      let localProducts = [];
-      if (localProdRaw) {
-        try {
-          const parsed = JSON.parse(localProdRaw);
-          if (Array.isArray(parsed)) localProducts = parsed;
-        } catch(e) {}
-      }
-
       if (!dbProdErr && dbProducts) {
-        // 1. Sync any local unsynced products to Supabase (if created offline previously)
-        const dbIds = new Set(dbProducts.map(p => p.id));
-        const unsyncedProds = localProducts.filter(p => p && p.id && !dbIds.has(p.id) && !deletedIds.includes(p.id) && typeof p.id === 'string' && !p.id.includes('-'));
-
-        if (unsyncedProds.length > 0) {
-          for (const localP of unsyncedProds) {
-            try {
-              await supabase.from('products').insert([{
-                name: localP.name,
-                price: localP.price,
-                cost: localP.cost || 0,
-                category: localP.category || 'Lainnya',
-                is_unlimited: localP.is_unlimited ?? true,
-                stock: localP.stock ?? null,
-                image_url: localP.image_url || '',
-                user_id: targetUser.id
-              }]);
-            } catch (e) {}
-          }
-          const { data: freshDb } = await supabase.from('products').select('*').eq('user_id', targetUser.id);
-          if (freshDb) {
-            setProducts(freshDb);
-            localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(freshDb));
-          } else {
-            setProducts(dbProducts);
-            localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(dbProducts));
-          }
-        } else {
-          setProducts(dbProducts);
-          localStorage.setItem(`kinipos_products_${targetUser.id}`, JSON.stringify(dbProducts));
-        }
+        setProducts(dbProducts);
       } else {
-        const validLocalProducts = localProducts.filter(p => p && !deletedIds.includes(p.id));
-        setProducts(validLocalProducts);
+        console.log('Failed to fetch products:', dbProdErr);
+        setProducts([]);
       }
 
-      // Get list of locally deleted transaction IDs
-      let deletedTxIds = [];
-      try {
-        deletedTxIds = JSON.parse(localStorage.getItem('kinipos_deleted_tx') || '[]');
-      } catch (e) {}
-
-      // Fetch transactions strictly for current user
+      // Fetch transactions from Supabase (single source of truth)
       const { data: dbTx, error: dbTxErr } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', targetUser.id)
         .order('created_at', { ascending: false });
-
-      const localHistRaw = localStorage.getItem(`kinipos_history_${targetUser.id}`) || localStorage.getItem('kinipos_history');
-      let localHist = [];
-      if (localHistRaw) {
-        try {
-          const parsed = JSON.parse(localHistRaw);
-          if (Array.isArray(parsed)) localHist = parsed;
-        } catch(e) {}
-      }
 
       if (!dbTxErr && dbTx) {
         const formattedDbTx = dbTx.map(t => ({
@@ -370,14 +280,20 @@ export default function App() {
           paid: t.paid,
           change: t.change,
           waPhone: t.wa_phone
-        })).filter(t => t && !deletedTxIds.includes(t.id));
-
+        }));
         setHistory(formattedDbTx);
-        localStorage.setItem(`kinipos_history_${targetUser.id}`, JSON.stringify(formattedDbTx));
       } else {
-        const validLocalHist = localHist.filter(t => t && t.id && !deletedTxIds.includes(t.id));
-        setHistory(validLocalHist);
+        console.log('Failed to fetch transactions:', dbTxErr);
+        setHistory([]);
       }
+
+      // Clean up stale localStorage keys
+      localStorage.removeItem('kinipos_products');
+      localStorage.removeItem('kinipos_history');
+      localStorage.removeItem(`kinipos_products_${targetUser.id}`);
+      localStorage.removeItem(`kinipos_history_${targetUser.id}`);
+      localStorage.removeItem('kinipos_deleted_products');
+      localStorage.removeItem('kinipos_deleted_tx');
     } catch (e) {
       console.log('Error fetching user data', e);
     } finally {
@@ -385,17 +301,7 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    if (isDataLoaded && user?.id) {
-      localStorage.setItem(`kinipos_products_${user.id}`, JSON.stringify(products));
-    }
-  }, [products, user, isDataLoaded]);
 
-  useEffect(() => {
-    if (isDataLoaded && user?.id) {
-      localStorage.setItem(`kinipos_history_${user.id}`, JSON.stringify(history));
-    }
-  }, [history, user, isDataLoaded]);
 
   useEffect(() => {
     localStorage.setItem('kinipos_store_name', storeName);
@@ -727,28 +633,17 @@ export default function App() {
   };
 
   const deleteProduct = async (id) => {
-    try {
-      const deletedIds = JSON.parse(localStorage.getItem('kinipos_deleted_products') || '[]');
-      if (!deletedIds.includes(id)) {
-        localStorage.setItem('kinipos_deleted_products', JSON.stringify([...deletedIds, id]));
-      }
-    } catch (e) {}
-
-    setProducts(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      if (user?.id) {
-        localStorage.setItem(`kinipos_products_${user.id}`, JSON.stringify(updated));
-      }
-      localStorage.setItem('kinipos_products', JSON.stringify(updated));
-      return updated;
-    });
-
+    // 1. Immediately remove from UI
+    setProducts(prev => prev.filter(p => p.id !== id));
     playSound('click');
     showNotification('Menu berhasil dihapus 🗑️', 'info');
 
+    // 2. Delete from Supabase (the single source of truth)
     try {
       await supabase.from('products').delete().eq('id', id);
-    } catch (e) { }
+    } catch (e) {
+      console.error('Failed to delete product from Supabase:', e);
+    }
   };
 
   const handleCancelTransaction = (txId) => {
@@ -761,22 +656,10 @@ export default function App() {
     const txToCancel = history.find(t => t.id === txId);
 
     if (txToCancel) {
-      try {
-        const deletedTxIds = JSON.parse(localStorage.getItem('kinipos_deleted_tx') || '[]');
-        if (!deletedTxIds.includes(txId)) {
-          localStorage.setItem('kinipos_deleted_tx', JSON.stringify([...deletedTxIds, txId]));
-        }
-      } catch (e) {}
+      // 1. Immediately remove from UI
+      setHistory(prev => prev.filter(t => t.id !== txId));
 
-      setHistory(prev => {
-        const updated = prev.filter(t => t.id !== txId);
-        if (user?.id) {
-          localStorage.setItem(`kinipos_history_${user.id}`, JSON.stringify(updated));
-        }
-        localStorage.setItem('kinipos_history', JSON.stringify(updated));
-        return updated;
-      });
-
+      // 2. Restore stock if applicable
       if (txToCancel.items && txToCancel.items.length > 0) {
         setProducts(prevProducts => {
           return prevProducts.map(p => {
@@ -794,6 +677,7 @@ export default function App() {
       playSound('click');
       showNotification('Transaksi dibatalkan & stok dikembalikan! 🛑', 'info');
 
+      // 3. Delete from Supabase (single source of truth)
       try {
         await supabase.from('transactions').delete().eq('id', txId);
       } catch (e) { }
