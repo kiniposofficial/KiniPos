@@ -180,21 +180,43 @@ export default function PengaturanView({
                       const file = e.target.files[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = async (evt) => {
+                        reader.onload = (evt) => {
                           const base64 = evt.target.result;
-                          localStorage.setItem('kinipos_qris_image', base64);
                           if (setQrisImage) setQrisImage(base64);
-                          if (user) {
-                            try {
-                              await supabase.auth.updateUser({
-                                data: { qris_image: base64 }
-                              });
-                            } catch (err) { }
-                          }
-                          if (playSound) playSound('success');
-                          if (showNotification) showNotification('Stiker QRIS Toko berhasil diperbarui! 📸', 'success');
+                          localStorage.setItem('kinipos_qris_image', base64);
                         };
                         reader.readAsDataURL(file);
+
+                        if (user && supabase) {
+                          try {
+                            const fileExt = file.name.split('.').pop() || 'jpg';
+                            const filePath = `qris/qris_${user.id}_${Date.now()}.${fileExt}`;
+                            const { error: uploadError } = await supabase.storage
+                              .from('products')
+                              .upload(filePath, file, { upsert: true });
+
+                            if (!uploadError) {
+                              const { data: publicUrlData } = supabase.storage
+                                .from('products')
+                                .getPublicUrl(filePath);
+
+                              const publicUrl = publicUrlData?.publicUrl;
+                              if (publicUrl) {
+                                await supabase.auth.updateUser({
+                                  data: { qris_image: publicUrl }
+                                });
+                                if (setQrisImage) setQrisImage(publicUrl);
+                                localStorage.setItem('kinipos_qris_image', publicUrl);
+                              }
+                            } else {
+                              console.error('Storage upload error:', uploadError);
+                            }
+                          } catch (err) {
+                            console.error('Failed to upload QRIS image:', err);
+                          }
+                        }
+                        if (playSound) playSound('success');
+                        if (showNotification) showNotification('Stiker QRIS Toko berhasil diperbarui! 📸', 'success');
                       }
                     }}
                   />
@@ -238,21 +260,45 @@ export default function PengaturanView({
                 const file = e.target.files[0];
                 if (file) {
                   const reader = new FileReader();
-                  reader.onload = async (evt) => {
+                  reader.onload = (evt) => {
                     const base64 = evt.target.result;
-                    localStorage.setItem('kinipos_qris_image', base64);
                     if (setQrisImage) setQrisImage(base64);
-                    if (user) {
-                      try {
-                        await supabase.auth.updateUser({
-                          data: { qris_image: base64 }
-                        });
-                      } catch (err) { }
-                    }
-                    if (playSound) playSound('success');
-                    if (showNotification) showNotification('Stiker QRIS Toko berhasil disimpan! 📸', 'success');
+                    localStorage.setItem('kinipos_qris_image', base64);
                   };
                   reader.readAsDataURL(file);
+
+                  if (user && supabase) {
+                    (async () => {
+                      try {
+                        const fileExt = file.name.split('.').pop() || 'jpg';
+                        const filePath = `qris/qris_${user.id}_${Date.now()}.${fileExt}`;
+                        const { error: uploadError } = await supabase.storage
+                          .from('products')
+                          .upload(filePath, file, { upsert: true });
+
+                        if (!uploadError) {
+                          const { data: publicUrlData } = supabase.storage
+                            .from('products')
+                            .getPublicUrl(filePath);
+
+                          const publicUrl = publicUrlData?.publicUrl;
+                          if (publicUrl) {
+                            await supabase.auth.updateUser({
+                              data: { qris_image: publicUrl }
+                            });
+                            if (setQrisImage) setQrisImage(publicUrl);
+                            localStorage.setItem('kinipos_qris_image', publicUrl);
+                          }
+                        } else {
+                          console.error('Storage upload error:', uploadError);
+                        }
+                      } catch (err) {
+                        console.error('Failed to upload QRIS image:', err);
+                      }
+                    })();
+                  }
+                  if (playSound) playSound('success');
+                  if (showNotification) showNotification('Stiker QRIS Toko berhasil disimpan! 📸', 'success');
                 }
               }}
             />
