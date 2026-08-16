@@ -180,10 +180,17 @@ export default function PengaturanView({
                       const file = e.target.files[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = (evt) => {
+                        reader.onload = async (evt) => {
                           const base64 = evt.target.result;
                           localStorage.setItem('kinipos_qris_image', base64);
                           if (setQrisImage) setQrisImage(base64);
+                          if (user) {
+                            try {
+                              await supabase.auth.updateUser({
+                                data: { qris_image: base64 }
+                              });
+                            } catch (err) { }
+                          }
                           if (playSound) playSound('success');
                           if (showNotification) showNotification('Stiker QRIS Toko berhasil diperbarui! 📸', 'success');
                         };
@@ -195,9 +202,16 @@ export default function PengaturanView({
                 <button
                   type="button"
                   className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 text-xs font-bold px-3 py-1.5 rounded-lg transition"
-                  onClick={() => {
+                  onClick={async () => {
                     localStorage.removeItem('kinipos_qris_image');
                     if (setQrisImage) setQrisImage('');
+                    if (user) {
+                      try {
+                        await supabase.auth.updateUser({
+                          data: { qris_image: '' }
+                        });
+                      } catch (err) { }
+                    }
                     if (showNotification) showNotification('Stiker QRIS dihapus', 'info');
                   }}
                 >
@@ -224,10 +238,17 @@ export default function PengaturanView({
                 const file = e.target.files[0];
                 if (file) {
                   const reader = new FileReader();
-                  reader.onload = (evt) => {
+                  reader.onload = async (evt) => {
                     const base64 = evt.target.result;
                     localStorage.setItem('kinipos_qris_image', base64);
                     if (setQrisImage) setQrisImage(base64);
+                    if (user) {
+                      try {
+                        await supabase.auth.updateUser({
+                          data: { qris_image: base64 }
+                        });
+                      } catch (err) { }
+                    }
                     if (playSound) playSound('success');
                     if (showNotification) showNotification('Stiker QRIS Toko berhasil disimpan! 📸', 'success');
                   };

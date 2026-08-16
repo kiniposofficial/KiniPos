@@ -180,6 +180,16 @@ export default function App() {
     if (user?.id) {
       fetchDataFromSupabase(user);
 
+      if (user.user_metadata?.qris_image) {
+        setQrisImage(user.user_metadata.qris_image);
+        localStorage.setItem('kinipos_qris_image', user.user_metadata.qris_image);
+      }
+      if (user.user_metadata?.store_name) {
+        setStoreName(user.user_metadata.store_name);
+        setSavedStoreName(user.user_metadata.store_name);
+        localStorage.setItem('kinipos_store_name', user.user_metadata.store_name);
+      }
+
       // Realtime listener for multi-device sync
       const channel = supabase
         .channel(`user-sync-${user.id}`)
