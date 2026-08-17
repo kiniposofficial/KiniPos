@@ -31,6 +31,11 @@ export default function ProdukView({ products, formatRp, openAddProductModal, de
                   }`}>
                     {p.is_unlimited ? '∞ Unlimited' : (p.stock > 0 ? `Stok: ${p.stock}` : 'HABIS')}
                   </span>
+                  {(p.pending_sync || (typeof p.id === 'string' && p.id.startsWith('offline_'))) && (
+                    <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-1.5 py-0.5 rounded border border-amber-200" title="Tersimpan di HP, otomatis sync saat online">
+                      ⏳ Offline
+                    </span>
+                  )}
                 </div>
                 <h4 className="text-sm font-bold text-slate-900 truncate mt-1">{p.name}</h4>
                 <p className="text-sm font-extrabold text-slate-900 mt-0.5">{formatRp(p.price)}</p>

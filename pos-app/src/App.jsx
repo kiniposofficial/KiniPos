@@ -260,7 +260,135 @@ export default function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleOnline = () => {
+      showNotification('Internet terhubung! Sinkronisasi data ke cloud... 🌐', 'info');
+      syncPendingChangesToSupabase();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [user]);
 
+  const syncPendingChangesToSupabase = async (targetUser = user) => {
+    if (!navigator.onLine || !targetUser?.id) return;
+    const pendingKey = `kinipos_pending_queue_${targetUser.id}`;
+    const rawQueue = localStorage.getItem(pendingKey);
+    if (!rawQueue) return;
+
+    try {
+      const queue = JSON.parse(rawQueue);
+      let updated = false;
+
+      // 1. Process Pending Deletions
+      if (queue.deletes && queue.deletes.length > 0) {
+        for (const delId of queue.deletes) {
+          try {
+            await supabase.from('products').delete().eq('id', delId);
+          } catch (e) { }
+        }
+        queue.deletes = [];
+        updated = true;
+      }
+
+      // 2. Process Pending Adds
+      if (queue.adds && queue.adds.length > 0) {
+        const remainingAdds = [];
+        for (const prod of queue.adds) {
+          try {
+            let finalImageUrl = prod.image_url || '';
+
+            if (prod.temp_image_base64) {
+              const res = await fetch(prod.temp_image_base64);
+              const blob = await res.blob();
+              const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+              const filePath = `products/${fileName}`;
+              const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(filePath, blob);
+              if (!uploadError) {
+                const { data: publicUrlData } = supabase.storage
+                  .from('products')
+                  .getPublicUrl(filePath);
+                finalImageUrl = publicUrlData?.publicUrl || '';
+              }
+            }
+
+            const { data: inserted, error: insertErr } = await supabase.from('products').insert([{
+              name: prod.name,
+              price: prod.price,
+              cost: prod.cost || 0,
+              category: prod.category,
+              is_unlimited: prod.is_unlimited,
+              stock: prod.stock,
+              image_url: finalImageUrl,
+              user_id: targetUser.id
+            }]).select();
+
+            if (!insertErr && inserted && inserted[0]) {
+              setProducts(prev => prev.map(p => p.id === prod.id ? inserted[0] : p));
+              updated = true;
+            } else {
+              remainingAdds.push(prod);
+            }
+          } catch (err) {
+            remainingAdds.push(prod);
+          }
+        }
+        queue.adds = remainingAdds;
+      }
+
+      // 3. Process Pending Updates
+      if (queue.updates && queue.updates.length > 0) {
+        const remainingUpdates = [];
+        for (const prod of queue.updates) {
+          try {
+            let finalImageUrl = prod.image_url || '';
+            if (prod.temp_image_base64) {
+              const res = await fetch(prod.temp_image_base64);
+              const blob = await res.blob();
+              const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+              const filePath = `products/${fileName}`;
+              const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(filePath, blob);
+              if (!uploadError) {
+                const { data: publicUrlData } = supabase.storage
+                  .from('products')
+                  .getPublicUrl(filePath);
+                finalImageUrl = publicUrlData?.publicUrl || '';
+              }
+            }
+
+            const { error: updateErr } = await supabase.from('products').update({
+              name: prod.name,
+              price: prod.price,
+              cost: prod.cost || 0,
+              category: prod.category,
+              is_unlimited: prod.is_unlimited,
+              stock: prod.stock,
+              image_url: finalImageUrl
+            }).eq('id', prod.id);
+
+            if (!updateErr) {
+              updated = true;
+            } else {
+              remainingUpdates.push(prod);
+            }
+          } catch (e) {
+            remainingUpdates.push(prod);
+          }
+        }
+        queue.updates = remainingUpdates;
+      }
+
+      if (updated) {
+        localStorage.setItem(pendingKey, JSON.stringify(queue));
+        showNotification('Data offline berhasil ter-sync ke cloud! ☁️✨', 'success');
+      }
+    } catch (e) {
+      console.error('Error syncing queue', e);
+    }
+  };
 
   const fetchDataFromSupabase = async (targetUser = user) => {
     if (!targetUser?.id) {
@@ -551,10 +679,6 @@ export default function App() {
   };
 
   const openAddProductModal = (prod = null) => {
-    if (!navigator.onLine) {
-      setShowOfflineModal(true);
-      return;
-    }
     if (prod) {
       setEditingProduct(prod);
       setNewProdName(prod.name);
@@ -578,38 +702,48 @@ export default function App() {
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
-    if (!navigator.onLine) {
-      setShowOfflineModal(true);
-      return;
-    }
     if (!newProdName || !newProdPrice) return;
     setUploadingImage(true);
 
+    let tempBase64 = null;
     let imageUrl = editingProduct ? (editingProduct.image_url || '') : '';
 
     if (newProdImageFile) {
-      try {
-        const fileExt = newProdImageFile.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `products/${fileName}`;
+      if (navigator.onLine) {
+        try {
+          const fileExt = newProdImageFile.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `products/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(filePath, newProdImageFile);
-
-        if (!uploadError) {
-          const { data: publicUrlData } = supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('products')
-            .getPublicUrl(filePath);
+            .upload(filePath, newProdImageFile);
 
-          imageUrl = publicUrlData?.publicUrl || '';
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage
+              .from('products')
+              .getPublicUrl(filePath);
+
+            imageUrl = publicUrlData?.publicUrl || '';
+          }
+        } catch (err) {
+          console.error('Image upload failed', err);
         }
-      } catch (err) {
-        console.error('Image upload failed', err);
+      } else {
+        // Read file as Base64 for instant local display while offline
+        tempBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (evt) => resolve(evt.target.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(newProdImageFile);
+        });
+        if (tempBase64) imageUrl = tempBase64;
       }
     }
 
     const finalStock = isUnlimitedStock ? null : (parseInt(stockQty, 10) || 0);
+    const pendingKey = user?.id ? `kinipos_pending_queue_${user.id}` : 'kinipos_pending_queue';
+    const queue = JSON.parse(localStorage.getItem(pendingKey) || '{"adds":[],"updates":[],"deletes":[]}');
 
     if (editingProduct) {
       const updatedProd = {
@@ -620,63 +754,77 @@ export default function App() {
         category: newProdCategory,
         is_unlimited: isUnlimitedStock,
         stock: finalStock,
-        image_url: imageUrl
+        image_url: imageUrl,
+        temp_image_base64: tempBase64 || editingProduct.temp_image_base64,
+        pending_sync: !navigator.onLine
       };
 
-      setProducts(prev => prev.map(p => p.id === editingProduct.id ? updatedProd : p));
-      showNotification('Menu berhasil diperbarui! ✏️', 'success');
+      setProducts(prev => {
+        const updated = prev.map(p => p.id === editingProduct.id ? updatedProd : p);
+        if (user?.id) localStorage.setItem(`kinipos_offline_products_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
 
-      try {
-        const { error: updateErr } = await supabase.from('products').update({
-          name: updatedProd.name,
-          price: updatedProd.price,
-          cost: updatedProd.cost,
-          category: updatedProd.category,
-          is_unlimited: updatedProd.is_unlimited,
-          stock: updatedProd.stock,
-          image_url: updatedProd.image_url
-        }).eq('id', editingProduct.id);
-
-        if (updateErr) {
-          console.error('Failed updating product:', updateErr);
-          showNotification(`Gagal update DB: ${updateErr.message} ⚠️`, 'error');
-        }
-      } catch (e) { }
+      if (navigator.onLine) {
+        showNotification('Menu berhasil diperbarui! ✏️', 'success');
+        try {
+          await supabase.from('products').update({
+            name: updatedProd.name,
+            price: updatedProd.price,
+            cost: updatedProd.cost,
+            category: updatedProd.category,
+            is_unlimited: updatedProd.is_unlimited,
+            stock: updatedProd.stock,
+            image_url: updatedProd.image_url
+          }).eq('id', editingProduct.id);
+        } catch (e) { }
+      } else {
+        queue.updates.push(updatedProd);
+        localStorage.setItem(pendingKey, JSON.stringify(queue));
+        showNotification('Menu diperbarui (Tersimpan Lokal - Menunggu Internet) ⏳', 'info');
+      }
     } else {
       const newProd = {
-        id: Date.now().toString(),
+        id: `offline_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         name: newProdName,
         price: parseFloat(newProdPrice),
         cost: parseFloat(newProdCost) || 0,
         category: newProdCategory,
         is_unlimited: isUnlimitedStock,
         stock: finalStock,
-        image_url: imageUrl
+        image_url: imageUrl,
+        temp_image_base64: tempBase64,
+        pending_sync: !navigator.onLine
       };
 
-      setProducts(prev => [...prev, newProd]);
-      showNotification('Menu baru berhasil ditambahkan! ✨', 'success');
+      setProducts(prev => {
+        const updated = [...prev, newProd];
+        if (user?.id) localStorage.setItem(`kinipos_offline_products_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
 
-      try {
-        const { data: inserted, error: insertErr } = await supabase.from('products').insert([{
-          name: newProd.name,
-          price: newProd.price,
-          cost: newProd.cost,
-          category: newProd.category,
-          is_unlimited: newProd.is_unlimited,
-          stock: newProd.stock,
-          image_url: newProd.image_url,
-          user_id: user?.id
-        }]).select();
+      if (navigator.onLine) {
+        showNotification('Menu baru berhasil ditambahkan! ✨', 'success');
+        try {
+          const { data: inserted, error: insertErr } = await supabase.from('products').insert([{
+            name: newProd.name,
+            price: newProd.price,
+            cost: newProd.cost,
+            category: newProd.category,
+            is_unlimited: newProd.is_unlimited,
+            stock: newProd.stock,
+            image_url: newProd.image_url,
+            user_id: user?.id
+          }]).select();
 
-        if (insertErr) {
-          console.error('Failed inserting product:', insertErr);
-          showNotification(`Gagal simpan DB: ${insertErr.message} ⚠️`, 'error');
-        } else if (inserted && inserted[0]) {
-          setProducts(prev => prev.map(p => p.id === newProd.id ? inserted[0] : p));
-        }
-      } catch (e) {
-        console.error('Failed inserting product to Supabase', e);
+          if (!insertErr && inserted && inserted[0]) {
+            setProducts(prev => prev.map(p => p.id === newProd.id ? inserted[0] : p));
+          }
+        } catch (e) { }
+      } else {
+        queue.adds.push(newProd);
+        localStorage.setItem(pendingKey, JSON.stringify(queue));
+        showNotification('Menu ditambahkan (Tersimpan Lokal - Menunggu Internet) ⏳', 'info');
       }
     }
 
@@ -693,10 +841,6 @@ export default function App() {
   };
 
   const deleteProduct = (prodOrId) => {
-    if (!navigator.onLine) {
-      setShowOfflineModal(true);
-      return;
-    }
     let targetProd = null;
     if (typeof prodOrId === 'object' && prodOrId !== null) {
       targetProd = prodOrId;
@@ -711,7 +855,6 @@ export default function App() {
   };
 
   const executeDeleteProduct = async (id) => {
-    // 1. Immediately remove from UI and update offline cache
     setProducts(prev => {
       const updated = prev.filter(p => p.id !== id);
       if (user?.id) {
@@ -720,13 +863,20 @@ export default function App() {
       return updated;
     });
     playSound('click');
-    showNotification('Menu berhasil dihapus 🗑️', 'info');
 
-    // 2. Delete from Supabase (the single source of truth)
-    try {
-      await supabase.from('products').delete().eq('id', id);
-    } catch (e) {
-      console.error('Failed to delete product from Supabase:', e);
+    if (navigator.onLine) {
+      showNotification('Menu berhasil dihapus 🗑️', 'info');
+      try {
+        await supabase.from('products').delete().eq('id', id);
+      } catch (e) {
+        console.error('Failed to delete product from Supabase:', e);
+      }
+    } else {
+      const pendingKey = user?.id ? `kinipos_pending_queue_${user.id}` : 'kinipos_pending_queue';
+      const queue = JSON.parse(localStorage.getItem(pendingKey) || '{"adds":[],"updates":[],"deletes":[]}');
+      queue.deletes.push(id);
+      localStorage.setItem(pendingKey, JSON.stringify(queue));
+      showNotification('Menu dihapus (Tersimpan Lokal - Menunggu Internet) ⏳', 'info');
     }
   };
 
