@@ -1339,6 +1339,7 @@ export default function App() {
         subInfo={subInfo}
         onClose={() => setShowSubscriptionModal(false)}
         user={user}
+        onLogout={handleLogout}
         onSubscriptionSuccess={(newUntilDate) => {
           showNotification('Berhasil Berlangganan KiniPos Pro! Terima kasih!', 'success');
           setUser(prev => ({

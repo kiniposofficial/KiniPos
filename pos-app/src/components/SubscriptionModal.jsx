@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabase';
 
-export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptionSuccess, isExpired = false, subInfo }) {
+export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptionSuccess, isExpired = false, subInfo, onLogout }) {
   const [plan, setPlan] = useState('monthly'); // 'monthly' | 'yearly'
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -158,6 +158,25 @@ export default function SubscriptionModal({ isOpen, onClose, user, onSubscriptio
             ? 'Pembayaran baru dapat dilakukan saat sisa masa berlangganan kurang dari 5 hari.'
             : 'Pembayaran aman & verifikasi otomatis via QRIS / Bank Transfer (Midtrans).'}
         </p>
+
+        {/* Logout Option */}
+        <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-slate-500 font-medium truncate">
+            {user?.email ? `Akun: ${user.email}` : 'Akun Kasir'}
+          </span>
+          {onLogout && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose && onClose();
+                onLogout();
+              }}
+              className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shrink-0"
+            >
+              🚪 Keluar Akun
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
