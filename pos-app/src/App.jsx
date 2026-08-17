@@ -160,6 +160,7 @@ export default function App() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [confirmCancelTxId, setConfirmCancelTxId] = useState(null);
   const [confirmDeleteProduct, setConfirmDeleteProduct] = useState(null);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [targetTabPending, setTargetTabPending] = useState(null);
   const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -551,7 +552,7 @@ export default function App() {
 
   const openAddProductModal = (prod = null) => {
     if (!navigator.onLine) {
-      showNotification('Mode offline. Sambungkan internet untuk kelola menu 🌐', 'error');
+      setShowOfflineModal(true);
       return;
     }
     if (prod) {
@@ -578,7 +579,7 @@ export default function App() {
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     if (!navigator.onLine) {
-      showNotification('Mode offline. Sambungkan internet untuk menyimpan menu 🌐', 'error');
+      setShowOfflineModal(true);
       return;
     }
     if (!newProdName || !newProdPrice) return;
@@ -693,7 +694,7 @@ export default function App() {
 
   const deleteProduct = (prodOrId) => {
     if (!navigator.onLine) {
-      showNotification('Mode offline. Sambungkan internet untuk menghapus menu 🌐', 'error');
+      setShowOfflineModal(true);
       return;
     }
     let targetProd = null;
@@ -1016,6 +1017,32 @@ export default function App() {
         DEFAULT_CATEGORIES={DEFAULT_CATEGORIES}
         formatRp={formatRp}
       />
+
+      {/* Modal Notifikasi Offline */}
+      {showOfflineModal && (
+        <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 text-center space-y-3.5 shadow-2xl">
+            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center mx-auto text-2xl shadow-inner">
+              🌐
+            </div>
+            <div>
+              <h3 className="text-lg font-extrabold text-slate-900">Perangkat Sedang Offline</h3>
+              <p className="text-xs text-slate-500 leading-relaxed mt-1.5">
+                Fitur tambah, edit, dan hapus menu membutuhkan koneksi internet agar ter-sync ke cloud database. Harap aktifkan Wi-Fi atau Data Seluler Anda.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-slate-700 transition shadow-md"
+                onClick={() => setShowOfflineModal(false)}
+              >
+                Saya Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Hapus Menu Produk */}
       {confirmDeleteProduct && (
