@@ -551,7 +551,7 @@ export default function App() {
 
   const openAddProductModal = (prod = null) => {
     if (!navigator.onLine) {
-      showNotification('Koneksi offline. Harap terhubung ke internet untuk menambah/mengedit menu! 🌐', 'error');
+      showNotification('Mode offline. Sambungkan internet untuk kelola menu 🌐', 'error');
       return;
     }
     if (prod) {
@@ -578,7 +578,7 @@ export default function App() {
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     if (!navigator.onLine) {
-      showNotification('Koneksi offline. Harap terhubung ke internet untuk menyimpan menu! 🌐', 'error');
+      showNotification('Mode offline. Sambungkan internet untuk menyimpan menu 🌐', 'error');
       return;
     }
     if (!newProdName || !newProdPrice) return;
@@ -693,7 +693,7 @@ export default function App() {
 
   const deleteProduct = (prodOrId) => {
     if (!navigator.onLine) {
-      showNotification('Koneksi offline. Harap terhubung ke internet untuk menghapus menu! 🌐', 'error');
+      showNotification('Mode offline. Sambungkan internet untuk menghapus menu 🌐', 'error');
       return;
     }
     let targetProd = null;
