@@ -159,6 +159,7 @@ export default function App() {
   const [newProdImageFile, setNewProdImageFile] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [confirmCancelTxId, setConfirmCancelTxId] = useState(null);
+  const [confirmDeleteProduct, setConfirmDeleteProduct] = useState(null);
   const [targetTabPending, setTargetTabPending] = useState(null);
   const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -279,9 +280,19 @@ export default function App() {
 
       if (!dbProdErr && dbProducts) {
         setProducts(dbProducts);
+        if (targetUser?.id) {
+          localStorage.setItem(`kinipos_offline_products_${targetUser.id}`, JSON.stringify(dbProducts));
+        }
       } else {
-        console.log('Failed to fetch products:', dbProdErr);
-        setProducts([]);
+        console.log('Failed to fetch products from network, checking offline cache:', dbProdErr);
+        if (targetUser?.id) {
+          const offlineCache = localStorage.getItem(`kinipos_offline_products_${targetUser.id}`);
+          if (offlineCache) {
+            try {
+              setProducts(JSON.parse(offlineCache));
+            } catch (e) { }
+          }
+        }
       }
 
       // Fetch transactions from Supabase (single source of truth)
@@ -312,9 +323,19 @@ export default function App() {
           waPhone: t.wa_phone
         }));
         setHistory(formattedDbTx);
+        if (targetUser?.id) {
+          localStorage.setItem(`kinipos_offline_tx_${targetUser.id}`, JSON.stringify(formattedDbTx));
+        }
       } else {
-        console.log('Failed to fetch transactions:', dbTxErr);
-        setHistory([]);
+        console.log('Failed to fetch transactions from network, checking offline cache:', dbTxErr);
+        if (targetUser?.id) {
+          const offlineTxCache = localStorage.getItem(`kinipos_offline_tx_${targetUser.id}`);
+          if (offlineTxCache) {
+            try {
+              setHistory(JSON.parse(offlineTxCache));
+            } catch (e) { }
+          }
+        }
       }
 
       // Clean up stale localStorage keys
@@ -529,6 +550,10 @@ export default function App() {
   };
 
   const openAddProductModal = (prod = null) => {
+    if (!navigator.onLine) {
+      showNotification('Koneksi offline. Harap terhubung ke internet untuk menambah/mengedit menu! 🌐', 'error');
+      return;
+    }
     if (prod) {
       setEditingProduct(prod);
       setNewProdName(prod.name);
@@ -552,6 +577,10 @@ export default function App() {
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
+    if (!navigator.onLine) {
+      showNotification('Koneksi offline. Harap terhubung ke internet untuk menyimpan menu! 🌐', 'error');
+      return;
+    }
     if (!newProdName || !newProdPrice) return;
     setUploadingImage(true);
 
@@ -662,9 +691,33 @@ export default function App() {
     playSound('success');
   };
 
-  const deleteProduct = async (id) => {
-    // 1. Immediately remove from UI
-    setProducts(prev => prev.filter(p => p.id !== id));
+  const deleteProduct = (prodOrId) => {
+    if (!navigator.onLine) {
+      showNotification('Koneksi offline. Harap terhubung ke internet untuk menghapus menu! 🌐', 'error');
+      return;
+    }
+    let targetProd = null;
+    if (typeof prodOrId === 'object' && prodOrId !== null) {
+      targetProd = prodOrId;
+    } else {
+      targetProd = products.find(p => p.id === prodOrId);
+    }
+    if (targetProd) {
+      setConfirmDeleteProduct(targetProd);
+    } else if (prodOrId) {
+      executeDeleteProduct(prodOrId);
+    }
+  };
+
+  const executeDeleteProduct = async (id) => {
+    // 1. Immediately remove from UI and update offline cache
+    setProducts(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      if (user?.id) {
+        localStorage.setItem(`kinipos_offline_products_${user.id}`, JSON.stringify(updated));
+      }
+      return updated;
+    });
     playSound('click');
     showNotification('Menu berhasil dihapus 🗑️', 'info');
 
@@ -963,6 +1016,41 @@ export default function App() {
         DEFAULT_CATEGORIES={DEFAULT_CATEGORIES}
         formatRp={formatRp}
       />
+
+      {/* Modal Hapus Menu Produk */}
+      {confirmDeleteProduct && (
+        <div className="fixed inset-0 z-[999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 text-center space-y-3 shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <img src="/bin.png" alt="Hapus" className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900">Hapus Menu Ini?</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Apakah Anda yakin ingin menghapus menu <strong className="text-slate-900">"{confirmDeleteProduct.name}"</strong>? Menu ini akan terhapus secara permanen.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                className="flex-1 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl text-sm hover:bg-slate-200 transition"
+                onClick={() => setConfirmDeleteProduct(null)}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-red-600 transition shadow-sm"
+                onClick={() => {
+                  const prodId = confirmDeleteProduct.id;
+                  setConfirmDeleteProduct(null);
+                  executeDeleteProduct(prodId);
+                }}
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Batal Transaksi */}
       {confirmCancelTxId && (
